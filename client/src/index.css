@@ -1,0 +1,126 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  /* DARK MODE (default) */
+  body {
+    @apply bg-dark-bg text-dark-text font-sans transition-colors duration-300;
+    min-height: 100vh;
+  }
+
+  /* LIGHT MODE */
+  .light body, body.light {
+    @apply bg-gray-50 text-gray-900;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-dark-bg; }
+  ::-webkit-scrollbar-thumb { @apply bg-primary-500 rounded-full; }
+}
+
+@layer components {
+  /* Buttons */
+  .btn-primary {
+    @apply bg-primary-500 hover:bg-primary-600 text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer;
+  }
+  .btn-outline {
+    @apply border border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 cursor-pointer;
+  }
+
+  /* Cards — dark mode */
+  .card {
+    @apply bg-dark-card border border-dark-border rounded-2xl;
+  }
+
+  /* Cards — light mode */
+  .light .card {
+    @apply bg-white border-gray-200 shadow-sm;
+  }
+
+  /* Input — dark mode */
+  .input-field {
+    @apply w-full bg-dark-card border border-dark-border text-dark-text placeholder-dark-muted rounded-xl px-4 py-3 focus:outline-none focus:border-primary-500 transition-colors duration-200;
+  }
+
+  /* Input — light mode */
+  .light .input-field {
+    @apply bg-white border-gray-300 text-gray-900 placeholder-gray-400;
+  }
+
+  .section-title {
+    @apply font-display text-3xl md:text-4xl font-bold;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-500 to-accent-400 bg-clip-text text-transparent;
+  }
+
+  /* Glass — dark */
+  .glass {
+    background: rgba(14, 20, 34, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(26, 34, 54, 0.8);
+  }
+
+  /* Glass — light */
+  .light .glass {
+    background: rgba(255, 255, 255, 0.85);
+    
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Light mode global overrides */
+.light {
+  --tw-bg-opacity: 1;
+}
+
+.light .text-dark-text    { color: #111827; }
+.light .text-dark-muted   { color: #6b7280; }
+.light .bg-dark-bg        { background-color: #f9fafb; }
+.light .bg-dark-card      { background-color: #ffffff; }
+.light .border-dark-border { border-color: #e5e7eb; }
+.light .bg-dark-border    { background-color: #f3f4f6; }
+
+/* Announcement bar */
+.light .bg-primary-500\/10  { background-color: rgba(59, 107, 255, 0.08); }
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+@keyframes marquee {
+  0%   { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-marquee  { animation: marquee 30s linear infinite; }
+.animate-float    { animation: float 6s ease-in-out infinite; }
+.animate-slide-up { animation: slideUp 0.5s ease-out; }
+.animate-fade-in  { animation: fadeIn 0.6s ease-out; }
+
+/* Background grid */
+.bg-grid-pattern {
+  background-image:
+    linear-gradient(rgba(59,107,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,107,255,0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
