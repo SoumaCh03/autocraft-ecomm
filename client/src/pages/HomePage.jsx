@@ -276,7 +276,7 @@ export default function HomePage() {
                 </div>
                 <Link
                   to="/shop"
-                  className="mt-3 w-full btn-primary py-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300 block text-center"
+                  className=" mt-3 w-full btn-primary py-2 text-xs block text-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300"
                 >
                   Shop Now
                 </Link>

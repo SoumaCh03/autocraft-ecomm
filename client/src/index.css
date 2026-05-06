@@ -124,3 +124,14 @@
     linear-gradient(90deg, rgba(59,107,255,0.05) 1px, transparent 1px);
   background-size: 40px 40px;
 }
+
+
+/* =========================
+   CUSTOM DESKTOP CURSOR
+========================= */
+
+@media (min-width: 768px) {
+  * {
+    cursor: none !important;
+  }
+}

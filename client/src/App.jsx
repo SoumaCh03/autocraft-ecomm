@@ -6,6 +6,7 @@ import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 
 // Pages
+import CustomCursor    from "./components/ui/CustomCursor"
 import HomePage        from './pages/HomePage'
 import ShopPage        from './pages/ShopPage'
 import ProductPage     from './pages/ProductPage'
@@ -38,6 +39,9 @@ export default function App() {
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-dark-bg dark:bg-dark-bg text-dark-text">
+        {/* Custom Cursor */}
+        <CustomCursor />
+
         <Navbar />
         <main>
           <Routes>
