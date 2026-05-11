@@ -81,10 +81,12 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16">
 
             {/* Logo */}
-            <Link to="/" className="flex items-center group">
+            <Link to="/" className="flex items-center group" aria-label="AUTOCRAFT home">
               <img
                 src={logo}
                 alt="AUTOCRAFT"
+                width={223}
+                height={65}
                 className="h-10 w-auto object-contain group-hover:scale-105 transition-transform duration-200"
               />
             </Link>
@@ -98,7 +100,12 @@ export default function Navbar() {
                 onMouseEnter={() => setBrandMenuOpen(true)}
                 onMouseLeave={() => setBrandMenuOpen(false)}
               >
-                <button className="flex items-center gap-1 px-4 py-2 text-sm text-dark-muted hover:text-dark-text transition-colors rounded-lg hover:bg-dark-card">
+                <button
+                  type="button"
+                  aria-expanded={brandMenuOpen}
+                  aria-label="Open car brand menu"
+                  className="flex items-center gap-1 px-4 py-2 text-sm text-dark-muted hover:text-dark-text transition-colors rounded-lg hover:bg-dark-card"
+                >
                   Shop by Car <ChevronDown size={14} className={`transition-transform ${brandMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -146,7 +153,12 @@ export default function Navbar() {
                 onMouseEnter={() => setCatMenuOpen(true)}
                 onMouseLeave={() => setCatMenuOpen(false)}
               >
-                <button className="flex items-center gap-1 px-4 py-2 text-sm text-dark-muted hover:text-dark-text transition-colors rounded-lg hover:bg-dark-card">
+                <button
+                  type="button"
+                  aria-expanded={catMenuOpen}
+                  aria-label="Open categories menu"
+                  className="flex items-center gap-1 px-4 py-2 text-sm text-dark-muted hover:text-dark-text transition-colors rounded-lg hover:bg-dark-card"
+                >
                   Categories <ChevronDown size={14} className={`transition-transform ${catMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -185,6 +197,8 @@ export default function Navbar() {
             <div className="flex items-center gap-2">
 
               <button
+                type="button"
+                aria-label="Search products"
                 onClick={() => setSearchOpen(true)}
                 className="p-2 text-dark-muted hover:text-dark-text transition-colors rounded-lg hover:bg-dark-card"
               >
@@ -192,6 +206,8 @@ export default function Navbar() {
               </button>
 
               <button
+                type="button"
+                aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
                 onClick={toggleTheme}
                 className="p-2 text-dark-muted hover:text-dark-text transition-colors rounded-lg hover:bg-dark-card"
               >
@@ -200,6 +216,7 @@ export default function Navbar() {
 
               <Link
                 to="/cart"
+                aria-label={`View cart${cartCount > 0 ? `, ${cartCount} items` : ''}`}
                 className="relative p-2 text-dark-muted hover:text-dark-text transition-colors rounded-lg hover:bg-dark-card"
               >
                 <ShoppingCart size={18} />
@@ -213,6 +230,9 @@ export default function Navbar() {
               {user ? (
                 <div className="relative">
                   <button
+                    type="button"
+                    aria-label="Open user menu"
+                    aria-expanded={userMenuOpen}
                     onClick={() => setUserMenuOpen((p) => !p)}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-dark-card transition-colors"
                   >
@@ -238,6 +258,7 @@ export default function Navbar() {
                         )}
                         <hr className="border-dark-border my-1" />
                         <button
+                          type="button"
                           onClick={handleLogout}
                           className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-dark-border/50 rounded-lg transition-colors"
                         >
@@ -254,6 +275,9 @@ export default function Navbar() {
               )}
 
               <button
+                type="button"
+                aria-label={mobileOpen ? 'Close mobile menu' : 'Open mobile menu'}
+                aria-expanded={mobileOpen}
                 onClick={() => setMobileOpen((p) => !p)}
                 className="lg:hidden p-2 text-dark-muted hover:text-dark-text transition-colors"
               >
@@ -333,10 +357,12 @@ export default function Navbar() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search car accessories, brands, models..."
+                  aria-label="Search car accessories, brands, models"
                   className="w-full glass border border-dark-border text-dark-text placeholder-dark-muted rounded-2xl pl-12 pr-4 py-4 text-lg focus:outline-none focus:border-primary-500"
                 />
                 <button
                   type="button"
+                  aria-label="Close search"
                   onClick={() => setSearchOpen(false)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-dark-muted hover:text-dark-text"
                 >
@@ -351,4 +377,3 @@ export default function Navbar() {
     </>
   )
 }
-

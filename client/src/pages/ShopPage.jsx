@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useSearchParams, Link } from 'react-router-dom'
+import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { SlidersHorizontal, Star, ShoppingCart, X } from 'lucide-react'
 import axios from 'axios'
@@ -7,8 +7,9 @@ import toast from 'react-hot-toast'
 import { useCart } from '../context/CartContext'
 import { Helmet } from 'react-helmet-async'
 
-import BASE_URL from '../utils/api' // Update this to your actual backend URL
-const API = BASE_URL 
+import BASE_URL from '../utils/api'
+
+const API = BASE_URL
 
 const CATEGORIES = [
   { label: 'All',         slug: '' },
@@ -21,29 +22,41 @@ const CATEGORIES = [
 ]
 
 const SORT_OPTIONS = [
-  { label: 'Latest',        value: '' },
-  { label: 'Price: Low → High', value: 'price-asc' },
-  { label: 'Price: High → Low', value: 'price-desc' },
-  { label: 'Top Rated',     value: 'rating' },
-  { label: 'Most Reviewed', value: 'relevance' },
+  { label: 'Latest',             value: '' },
+  { label: 'Price: Low → High',  value: 'price-asc' },
+  { label: 'Price: High → Low',  value: 'price-desc' },
+  { label: 'Top Rated',          value: 'rating' },
+  { label: 'Most Reviewed',      value: 'relevance' },
 ]
 
+const formatCategoryTitle = (slug) => {
+  const match = CATEGORIES.find((cat) => cat.slug === slug)
+  return match?.label || slug.charAt(0).toUpperCase() + slug.slice(1)
+}
+
 export default function ShopPage() {
-  const { category: catParam }    = useParams()
+  const { category: catParam } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { addToCart }             = useCart()
+  const navigate = useNavigate()
+  const { addToCart } = useCart()
 
-  const [products, setProducts]   = useState([])
-  const [loading,  setLoading]    = useState(true)
-  const [total,    setTotal]      = useState(0)
-  const [page,     setPage]       = useState(1)
-  const [pages,    setPages]      = useState(1)
+  const [products, setProducts] = useState([])
+  const [loading,  setLoading]  = useState(true)
+  const [total,    setTotal]    = useState(0)
+  const [page,     setPage]     = useState(1)
+  const [pages,    setPages]    = useState(1)
 
-  const [category, setCategory]   = useState(catParam || '')
-  const [sort,     setSort]       = useState('')
-  const [search,   setSearch]     = useState(searchParams.get('search') || '')
-  const brand                     = searchParams.get('brand') || ''
-  const model                     = searchParams.get('model') || ''
+  const [category, setCategory] = useState(catParam || '')
+  const [sort,     setSort]     = useState('')
+  const [search,   setSearch]   = useState(searchParams.get('search') || '')
+
+  const brand = searchParams.get('brand') || ''
+  const model = searchParams.get('model') || ''
+
+  useEffect(() => {
+    setCategory(catParam || '')
+    setPage(1)
+  }, [catParam])
 
   useEffect(() => {
     setSearch(searchParams.get('search') || '')
@@ -77,15 +90,42 @@ export default function ShopPage() {
     }
   }
 
+  const goToCategory = (slug) => {
+    setCategory(slug)
+    setPage(1)
+
+    const query = searchParams.toString()
+    navigate({
+      pathname: slug ? `/shop/${slug}` : '/shop',
+      search: query ? `?${query}` : '',
+    })
+  }
+
   const handleAddToCart = (product) => {
-    if (product.isOutOfStock) return toast.error('Out of stock')
-    addToCart(product)
+    if (product.isOutOfStock || Number(product.stock || 0) <= 0) {
+      return toast.error('Out of stock')
+    }
+
+    const added = addToCart(product)
+    if (added === false) return toast.error('Out of stock')
+
     toast.success('Added to cart!')
   }
 
   const clearFilter = (filter) => {
-    if (filter === 'category') setCategory('')
-    if (filter === 'search')   setSearch('')
+    if (filter === 'category') {
+      setCategory('')
+      setPage(1)
+
+      const query = searchParams.toString()
+      navigate({
+        pathname: '/shop',
+        search: query ? `?${query}` : '',
+      })
+      return
+    }
+
+    if (filter === 'search') setSearch('')
 
     if (filter === 'brand' || filter === 'model' || filter === 'search') {
       const params = new URLSearchParams(searchParams)
@@ -97,11 +137,20 @@ export default function ShopPage() {
     setPage(1)
   }
 
+  const clearAllFilters = () => {
+    setCategory('')
+    setSort('')
+    setSearch('')
+    setPage(1)
+    setSearchParams(new URLSearchParams())
+    navigate('/shop')
+  }
+
   const activeFilters = [
-    brand    && { label: `Brand: ${brand}`,    clear: 'brand' },
-    model    && { label: `Model: ${model}`,    clear: 'model' },
-    category && { label: `Cat: ${category}`,   clear: 'category' },
-    search   && { label: `Search: "${search}"`, clear: 'search' },
+    brand    && { label: `Brand: ${brand}`,       clear: 'brand' },
+    model    && { label: `Model: ${model}`,       clear: 'model' },
+    category && { label: `Cat: ${category}`,      clear: 'category' },
+    search   && { label: `Search: "${search}"`,   clear: 'search' },
   ].filter(Boolean)
 
   return (
@@ -115,7 +164,11 @@ export default function ShopPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="font-display text-3xl font-bold text-dark-text">
-              {brand ? `${brand} ${model ? `— ${model}` : ''}` : category ? category.charAt(0).toUpperCase() + category.slice(1) : 'All Products'}
+              {brand
+                ? `${brand} ${model ? `— ${model}` : ''}`
+                : category
+                  ? formatCategoryTitle(category)
+                  : 'All Products'}
             </h1>
             <p className="text-dark-muted text-sm mt-1">{total} products found</p>
           </div>
@@ -126,6 +179,7 @@ export default function ShopPage() {
               value={sort}
               onChange={(e) => { setSort(e.target.value); setPage(1) }}
               className="input-field py-2 text-sm w-48"
+              aria-label="Sort products"
             >
               {SORT_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -139,7 +193,11 @@ export default function ShopPage() {
             {activeFilters.map((f) => (
               <span key={f.label} className="flex items-center gap-1.5 px-3 py-1 bg-primary-500/10 border border-primary-500/30 rounded-full text-xs text-primary-500">
                 {f.label}
-                <button onClick={() => clearFilter(f.clear)}>
+                <button
+                  type="button"
+                  aria-label={`Clear ${f.label}`}
+                  onClick={() => clearFilter(f.clear)}
+                >
                   <X size={12} />
                 </button>
               </span>
@@ -151,7 +209,8 @@ export default function ShopPage() {
           {CATEGORIES.map((cat) => (
             <button
               key={cat.slug}
-              onClick={() => { setCategory(cat.slug); setPage(1) }}
+              type="button"
+              onClick={() => goToCategory(cat.slug)}
               className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                 category === cat.slug
                   ? 'bg-primary-500 text-white'
@@ -181,7 +240,11 @@ export default function ShopPage() {
             <p className="text-4xl mb-4">🚗</p>
             <p className="text-dark-text font-semibold text-lg">No products found</p>
             <p className="text-dark-muted text-sm mt-1">Try changing your filters</p>
-            <button onClick={() => { setCategory(''); setSort(''); setSearch(''); setSearchParams(new URLSearchParams()) }} className="btn-primary mt-4 text-sm">
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="btn-primary mt-4 text-sm"
+            >
               Clear Filters
             </button>
           </div>
@@ -206,7 +269,7 @@ export default function ShopPage() {
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-dark-muted/20 font-display text-4xl font-bold">AC</div>
                     )}
-                    {product.isOutOfStock && (
+                    {(product.isOutOfStock || Number(product.stock || 0) <= 0) && (
                       <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                         <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">OUT OF STOCK</span>
                       </div>
@@ -248,8 +311,15 @@ export default function ShopPage() {
                     </div>
 
                     <button
+                      type="button"
+                      aria-label={`Add ${product.name} to cart`}
                       onClick={() => handleAddToCart(product)}
-                      className="p-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors"
+                      disabled={product.isOutOfStock || Number(product.stock || 0) <= 0}
+                      className={`p-2 rounded-lg transition-colors ${
+                        product.isOutOfStock || Number(product.stock || 0) <= 0
+                          ? 'bg-dark-border text-dark-muted cursor-not-allowed'
+                          : 'bg-primary-500 text-white hover:bg-primary-600'
+                      }`}
                     >
                       <ShoppingCart size={16} />
                     </button>
@@ -257,6 +327,28 @@ export default function ShopPage() {
                 </div>
               </motion.div>
             ))}
+          </div>
+        )}
+
+        {!loading && pages > 1 && (
+          <div className="flex justify-center gap-2 mt-10">
+            {[...Array(pages)].map((_, i) => {
+              const pageNo = i + 1
+              return (
+                <button
+                  key={pageNo}
+                  type="button"
+                  onClick={() => setPage(pageNo)}
+                  className={`w-9 h-9 rounded-lg text-sm font-medium transition-all ${
+                    page === pageNo
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-dark-card border border-dark-border text-dark-muted hover:text-dark-text'
+                  }`}
+                >
+                  {pageNo}
+                </button>
+              )
+            })}
           </div>
         )}
       </div>
