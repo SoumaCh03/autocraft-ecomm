@@ -1,35 +1,37 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ShoppingCart, Star, ArrowLeft, Shield, Truck, Package } from 'lucide-react'
+import { ShoppingCart, Star, ArrowLeft, Shield, Truck, Package, Mail } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { Helmet } from 'react-helmet-async'
+import BASE_URL from '../utils/api'
 
-import BASE_URL from '../utils/api'; // Adjust the import path as needed
-
-const API = BASE_URL; // from utils/api.js
+const API = BASE_URL
 
 export default function ProductPage() {
-  const { id }          = useParams()
-  const navigate        = useNavigate()
-  const { addToCart }   = useCart()
-  const { user }        = useAuth()
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const { addToCart } = useCart()
+  const { user } = useAuth()
 
-  const [product,  setProduct]  = useState(null)
-  const [loading,  setLoading]  = useState(true)
-  const [qty,      setQty]      = useState(1)
-  const [imgIdx,   setImgIdx]   = useState(0)
-  const [review,   setReview]   = useState({ rating: 5, comment: '' })
+  const [product, setProduct] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [qty, setQty] = useState(1)
+  const [imgIdx, setImgIdx] = useState(0)
+  const [review, setReview] = useState({ rating: 5, comment: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [notifyEmail, setNotifyEmail] = useState('')
+  const [notifying, setNotifying] = useState(false)
 
   useEffect(() => {
     const fetch = async () => {
       try {
         const { data } = await axios.get(`${API}/products/${id}`)
         setProduct(data.product)
+        setQty(1)
       } catch {
         toast.error('Product not found')
         navigate('/shop')
@@ -38,18 +40,41 @@ export default function ProductPage() {
       }
     }
     fetch()
-  }, [id])
+  }, [id, navigate])
+
+  useEffect(() => {
+    if (user?.email) setNotifyEmail(user.email)
+  }, [user])
+
+  const isOutOfStock = product?.isOutOfStock || Number(product?.stock || 0) <= 0
 
   const handleAddToCart = () => {
-    if (product.isOutOfStock) return toast.error('Out of stock')
-    addToCart(product, qty)
+    if (isOutOfStock) return toast.error('Out of stock')
+    const added = addToCart(product, qty)
+    if (!added) return toast.error('Out of stock')
     toast.success(`${qty} item(s) added to cart!`)
   }
 
   const handleBuyNow = () => {
-    if (product.isOutOfStock) return toast.error('Out of stock')
-    addToCart(product, qty)
+    if (isOutOfStock) return toast.error('Out of stock')
+    const added = addToCart(product, qty)
+    if (!added) return toast.error('Out of stock')
     navigate('/cart')
+  }
+
+  const handleNotifyMe = async (e) => {
+    e.preventDefault()
+    if (!notifyEmail.trim()) return toast.error('Please enter your email')
+    setNotifying(true)
+
+    try {
+      const { data } = await axios.post(`${API}/products/${id}/notify`, { email: notifyEmail.trim() }, { withCredentials: true })
+      toast.success(data.message || 'We will notify you when this product is back in stock')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Notify request failed')
+    } finally {
+      setNotifying(false)
+    }
   }
 
   const handleReview = async (e) => {
@@ -90,33 +115,30 @@ export default function ProductPage() {
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
-
-        {/* Back */}
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-dark-muted hover:text-dark-text text-sm mb-8 transition-colors">
           <ArrowLeft size={15} /> Back
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-
-          {/* Images */}
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-            <div className="aspect-square rounded-2xl overflow-hidden bg-dark-card border border-dark-border mb-4">
+            <div className="aspect-square rounded-2xl overflow-hidden bg-dark-card border border-dark-border mb-4 relative">
               {product.images?.[imgIdx] ? (
-                <img src={product.images[imgIdx]} alt={product.name} className="w-full h-full object-cover" />
+                <img src={product.images[imgIdx]} alt={product.name} className={`w-full h-full object-cover ${isOutOfStock ? 'opacity-60 grayscale' : ''}`} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-dark-muted/20 font-display text-6xl font-bold">AC</div>
               )}
+
+              {isOutOfStock && (
+                <div className="absolute top-4 left-4 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide shadow-lg">
+                  Out of Stock
+                </div>
+              )}
             </div>
+
             {product.images?.length > 1 && (
               <div className="flex gap-3">
                 {product.images.map((img, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setImgIdx(i)}
-                    className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                      imgIdx === i ? 'border-primary-500' : 'border-dark-border'
-                    }`}
-                  >
+                  <button key={i} onClick={() => setImgIdx(i)} className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${imgIdx === i ? 'border-primary-500' : 'border-dark-border'}`}>
                     <img src={img} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
@@ -124,12 +146,10 @@ export default function ProductPage() {
             )}
           </motion.div>
 
-          {/* Details */}
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
             <span className="text-xs text-primary-500 uppercase tracking-widest font-medium">{product.category}</span>
             <h1 className="font-display text-3xl font-bold text-dark-text mt-2 mb-4">{product.name}</h1>
 
-            {/* Rating */}
             {product.numReviews > 0 && (
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex">
@@ -141,7 +161,6 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* Price */}
             <div className="flex items-baseline gap-3 mb-6">
               <span className="font-display text-4xl font-bold text-dark-text">₹{product.price.toLocaleString()}</span>
               {product.mrp > product.price && (
@@ -154,7 +173,6 @@ export default function ProductPage() {
 
             <p className="text-dark-muted leading-relaxed mb-6">{product.description}</p>
 
-            {/* Compatible cars */}
             {product.carBrands?.length > 0 && (
               <div className="mb-6 p-4 bg-primary-500/5 border border-primary-500/20 rounded-xl">
                 <p className="text-xs text-primary-500 font-medium uppercase tracking-wider mb-2">Compatible With</p>
@@ -165,16 +183,14 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* Stock */}
             <div className="flex items-center gap-2 mb-6">
-              <div className={`w-2 h-2 rounded-full ${product.isOutOfStock ? 'bg-red-400' : 'bg-green-400'}`} />
-              <span className={`text-sm font-medium ${product.isOutOfStock ? 'text-red-400' : 'text-green-400'}`}>
-                {product.isOutOfStock ? 'Out of Stock' : `In Stock (${product.stock} left)`}
+              <div className={`w-2 h-2 rounded-full ${isOutOfStock ? 'bg-red-400' : 'bg-green-400'}`} />
+              <span className={`text-sm font-medium ${isOutOfStock ? 'text-red-400' : 'text-green-400'}`}>
+                {isOutOfStock ? 'Out of Stock' : `In Stock (${product.stock} left)`}
               </span>
             </div>
 
-            {/* Qty + Buttons */}
-            {!product.isOutOfStock && (
+            {!isOutOfStock ? (
               <>
                 <div className="flex items-center gap-3 mb-6">
                   <label className="text-sm text-dark-muted">Qty:</label>
@@ -194,14 +210,37 @@ export default function ProductPage() {
                   </button>
                 </div>
               </>
+            ) : (
+              <form onSubmit={handleNotifyMe} className="card p-5 mb-8 border-red-500/20 bg-red-500/5">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+                    <Mail size={18} className="text-red-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-dark-text">Notify Me</p>
+                    <p className="text-sm text-dark-muted mt-1">Enter your email and we will notify you when this product is back in stock.</p>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="email"
+                    value={notifyEmail}
+                    onChange={(e) => setNotifyEmail(e.target.value)}
+                    className="input-field flex-1"
+                    placeholder="your@email.com"
+                  />
+                  <button type="submit" disabled={notifying} className="btn-primary justify-center sm:w-40">
+                    {notifying ? 'Saving...' : 'Notify Me'}
+                  </button>
+                </div>
+              </form>
             )}
 
-            {/* Trust badges */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                [Truck,   'Free Shipping', 'Above ₹999'],
-                [Shield,  'Genuine Product', '100% authentic'],
-                [Package, 'Easy Returns',  '7 day policy'],
+                [Truck, 'Free Shipping', 'Above ₹999'],
+                [Shield, 'Genuine Product', '100% authentic'],
+                [Package, 'Easy Returns', '7 day policy'],
               ].map(([Icon, title, sub]) => (
                 <div key={title} className="card p-3 text-center">
                   <Icon size={18} className="text-primary-500 mx-auto mb-1" />
@@ -213,7 +252,6 @@ export default function ProductPage() {
           </motion.div>
         </div>
 
-        {/* Reviews */}
         <div className="mt-16">
           <h2 className="font-display text-2xl font-bold text-dark-text mb-8">Customer Reviews</h2>
 
@@ -242,7 +280,6 @@ export default function ProductPage() {
             </div>
           )}
 
-          {/* Add review */}
           {user && (
             <div className="card p-6 max-w-lg">
               <h3 className="font-semibold text-dark-text mb-4">Write a Review</h3>
@@ -251,11 +288,7 @@ export default function ProductPage() {
                   <label className="text-sm text-dark-muted mb-1 block">Rating</label>
                   <div className="flex gap-2">
                     {[1,2,3,4,5].map(n => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setReview(r => ({ ...r, rating: n }))}
-                      >
+                      <button key={n} type="button" onClick={() => setReview(r => ({ ...r, rating: n }))}>
                         <Star size={24} className={n <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-dark-border'} />
                       </button>
                     ))}
@@ -263,13 +296,7 @@ export default function ProductPage() {
                 </div>
                 <div>
                   <label className="text-sm text-dark-muted mb-1 block">Comment</label>
-                  <textarea
-                    value={review.comment}
-                    onChange={e => setReview(r => ({ ...r, comment: e.target.value }))}
-                    rows={3}
-                    className="input-field resize-none"
-                    placeholder="Share your experience..."
-                  />
+                  <textarea value={review.comment} onChange={e => setReview(r => ({ ...r, comment: e.target.value }))} rows={3} className="input-field resize-none" placeholder="Share your experience..." />
                 </div>
                 <button type="submit" disabled={submitting} className="btn-primary">
                   {submitting ? 'Submitting...' : 'Submit Review'}
@@ -282,4 +309,3 @@ export default function ProductPage() {
     </>
   )
 }
-

@@ -6,7 +6,9 @@ export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('autocraft-cart')) || [];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   });
 
   useEffect(() => {
@@ -14,26 +16,40 @@ export const CartProvider = ({ children }) => {
   }, [cartItems]);
 
   const addToCart = (product, qty = 1) => {
+    if (!product || product.isOutOfStock || Number(product.stock || 0) <= 0) return false;
+
+    const safeQty = Math.max(1, Math.min(Number(qty || 1), Number(product.stock || 1)));
+
     setCartItems(prev => {
       const exists = prev.find(i => i._id === product._id);
+
       if (exists) {
-        return prev.map(i => i._id === product._id ? { ...i, qty: i.qty + qty } : i);
+        const nextQty = Math.min(Number(product.stock || 1), exists.qty + safeQty);
+        return prev.map(i => i._id === product._id ? { ...i, ...product, qty: nextQty } : i);
       }
-      return [...prev, { ...product, qty }];
+
+      return [...prev, { ...product, qty: safeQty }];
     });
+
+    return true;
   };
 
   const removeFromCart = (id) => setCartItems(prev => prev.filter(i => i._id !== id));
 
   const updateQty = (id, qty) => {
     if (qty < 1) return removeFromCart(id);
-    setCartItems(prev => prev.map(i => i._id === id ? { ...i, qty } : i));
+
+    setCartItems(prev => prev.map(i => {
+      if (i._id !== id) return i;
+      const maxStock = Number(i.stock || qty);
+      return { ...i, qty: Math.min(Number(qty), maxStock) };
+    }));
   };
 
   const clearCart = () => setCartItems([]);
 
-  const cartTotal   = cartItems.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const cartCount   = cartItems.reduce((sum, i) => sum + i.qty, 0);
+  const cartTotal = cartItems.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
 
   return (
     <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQty, clearCart, cartTotal, cartCount }}>

@@ -7,6 +7,20 @@ const reviewSchema = new mongoose.Schema({
   comment: { type: String, required: true },
 }, { timestamps: true });
 
+const notifyRequestSchema = new mongoose.Schema({
+  user:        { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  email:       { type: String, required: true, lowercase: true, trim: true },
+  requestedAt: { type: Date, default: Date.now },
+  notifiedAt:  { type: Date },
+  status:      { type: String, enum: ['waiting', 'notified'], default: 'waiting' },
+}, { _id: false });
+
+const salesHistorySchema = new mongoose.Schema({
+  order:  { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true },
+  qty:    { type: Number, required: true, min: 1 },
+  soldAt: { type: Date, default: Date.now },
+}, { _id: false });
+
 const productSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -48,16 +62,41 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  reviews:     [reviewSchema],
-  rating:      { type: Number, default: 0 },
-  numReviews:  { type: Number, default: 0 },
-  tags:        [{ type: String }],
+  soldCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  salesHistory: [salesHistorySchema],
+  notifyList:   [notifyRequestSchema],
+  reviews:      [reviewSchema],
+  rating:       { type: Number, default: 0 },
+  numReviews:   { type: Number, default: 0 },
+  tags:         [{ type: String }],
 }, { timestamps: true });
 
-/* ✅ FIXED HOOK */
 productSchema.pre('save', function () {
+  this.stock = Math.max(0, Number(this.stock || 0));
   this.isOutOfStock = this.stock === 0;
 });
 
-export default mongoose.model('Product', productSchema);
+productSchema.pre('findOneAndUpdate', function (next) {
+  const update = this.getUpdate() || {};
+  const stock = update.stock ?? update.$set?.stock;
 
+  if (stock !== undefined) {
+    const safeStock = Math.max(0, Number(stock || 0));
+    if (update.$set) {
+      update.$set.stock = safeStock;
+      update.$set.isOutOfStock = safeStock === 0;
+    } else {
+      update.stock = safeStock;
+      update.isOutOfStock = safeStock === 0;
+    }
+    this.setUpdate(update);
+  }
+
+  next();
+});
+
+export default mongoose.model('Product', productSchema);

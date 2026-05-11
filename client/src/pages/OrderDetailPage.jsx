@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft, Download, Star, Package,
-  MapPin, CreditCard, CheckCircle, Truck, Clock
+  MapPin, CreditCard, CheckCircle, Truck, Clock, RotateCcw
 } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
@@ -12,49 +12,75 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { useAuth } from '../context/AuthContext'
 
-import BASE_URL from '../utils/api'; //adjust the import path as needed
+import BASE_URL from '../utils/api'
 
-const API = BASE_URL; // from utils/api.js
+const API = BASE_URL
 
 const STATUS_STEPS = ['pending', 'processing', 'shipped', 'delivered']
-const STATUS_COLORS = {
-  pending:    'text-yellow-400',
-  processing: 'text-blue-400',
-  shipped:    'text-purple-400',
-  delivered:  'text-green-400',
-  cancelled:  'text-red-400',
-}
+const RETURN_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 
 export default function OrderDetailPage() {
-  const { id }      = useParams()
-  const navigate    = useNavigate()
-  const { user }    = useAuth()
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const { user } = useAuth()
 
-  const [order,      setOrder]      = useState(null)
-  const [loading,    setLoading]    = useState(true)
-  const [review,     setReview]     = useState({ rating: 5, comment: '', productId: '' })
+  const [order, setOrder] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [review, setReview] = useState({ rating: 5, comment: '', productId: '' })
   const [submitting, setSubmitting] = useState(false)
   const [showReview, setShowReview] = useState(null)
+  const [returnReason, setReturnReason] = useState('')
+  const [returning, setReturning] = useState(false)
+
+  const fetchOrder = async () => {
+    try {
+      const { data } = await axios.get(`${API}/orders/${id}`, { withCredentials: true })
+      setOrder(data.order)
+    } catch {
+      toast.error('Order not found')
+      navigate('/my-orders')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchOrder = async () => {
-      try {
-        const { data } = await axios.get(`${API}/orders/${id}`, { withCredentials: true })
-        setOrder(data.order)
-      } catch {
-        toast.error('Order not found')
-        navigate('/my-orders')
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchOrder()
   }, [id])
+
+  const isReturnWindowOpen = () => {
+    if (!order || order.status !== 'delivered' || !order.deliveredAt) return false
+    return Date.now() - new Date(order.deliveredAt).getTime() <= RETURN_WINDOW_MS
+  }
+
+  const getReturnDaysLeft = () => {
+    if (!order?.deliveredAt) return 0
+    const returnEndsAt = new Date(order.deliveredAt).getTime() + RETURN_WINDOW_MS
+    return Math.max(0, Math.ceil((returnEndsAt - Date.now()) / (24 * 60 * 60 * 1000)))
+  }
+
+  const handleReturnRequest = async (e) => {
+    e.preventDefault()
+    setReturning(true)
+
+    try {
+      const { data } = await axios.post(`${API}/orders/${order._id}/return`, {
+        reason: returnReason.trim(),
+      }, { withCredentials: true })
+
+      setOrder(data.order)
+      setReturnReason('')
+      toast.success(data.message || 'Return request submitted')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Return request failed')
+    } finally {
+      setReturning(false)
+    }
+  }
 
   const generatePDF = () => {
     const doc = new jsPDF()
 
-    // Header
     doc.setFontSize(20)
     doc.setTextColor(59, 107, 255)
     doc.text('AUTOCRAFT', 14, 20)
@@ -64,7 +90,6 @@ export default function OrderDetailPage() {
     doc.text('Old Military Hospital Road, Gowala Patti, Cooch Behar, WB 736101', 14, 33)
     doc.text('hello@autocraft.in', 14, 39)
 
-    // Invoice title
     doc.setFontSize(16)
     doc.setTextColor(0)
     doc.text('INVOICE', 160, 20)
@@ -74,11 +99,9 @@ export default function OrderDetailPage() {
     doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString('en-IN')}`, 140, 33)
     doc.text(`Status: ${order.status.toUpperCase()}`, 140, 39)
 
-    // Divider
     doc.setDrawColor(200)
     doc.line(14, 44, 196, 44)
 
-    // Customer details
     doc.setFontSize(11)
     doc.setTextColor(0)
     doc.text('Bill To:', 14, 52)
@@ -89,7 +112,6 @@ export default function OrderDetailPage() {
     doc.text(`${order.shippingAddress.city}, ${order.shippingAddress.state} — ${order.shippingAddress.pincode}`, 14, 71)
     doc.text(`Phone: ${order.shippingAddress.phone}`, 14, 77)
 
-    // Payment info
     doc.setFontSize(11)
     doc.setTextColor(0)
     doc.text('Payment:', 130, 52)
@@ -104,7 +126,6 @@ export default function OrderDetailPage() {
       doc.text(`TXN ID: ${order.paymentResult.razorpay_payment_id}`, 130, 77)
     }
 
-    // Items table
     autoTable(doc, {
       startY: 88,
       head: [['#', 'Product', 'Qty', 'Unit Price', 'Total']],
@@ -120,13 +141,12 @@ export default function OrderDetailPage() {
         ['', '', '', 'Shipping:', order.shippingPrice === 0 ? 'FREE' : `Rs.${order.shippingPrice}`],
         ['', '', '', 'GRAND TOTAL:', `Rs.${order.totalPrice?.toLocaleString()}`],
       ],
-      headStyles:  { fillColor: [59, 107, 255], textColor: 255, fontSize: 10 },
-      footStyles:  { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' },
-      bodyStyles:  { fontSize: 9 },
+      headStyles: { fillColor: [59, 107, 255], textColor: 255, fontSize: 10 },
+      footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 9 },
       alternateRowStyles: { fillColor: [248, 248, 248] },
     })
 
-    // Footer
     const finalY = doc.lastAutoTable.finalY + 10
     doc.setFontSize(9)
     doc.setTextColor(150)
@@ -142,7 +162,7 @@ export default function OrderDetailPage() {
     setSubmitting(true)
     try {
       await axios.post(`${API}/products/${productId}/review`, {
-        rating:  review.rating,
+        rating: review.rating,
         comment: review.comment,
       }, { withCredentials: true })
       toast.success('Review submitted! Thank you.')
@@ -164,13 +184,16 @@ export default function OrderDetailPage() {
   if (!order) return null
 
   const currentStep = order.status === 'cancelled' ? -1 : STATUS_STEPS.indexOf(order.status)
+  const returnOpen = isReturnWindowOpen()
+  const returnDaysLeft = getReturnDaysLeft()
+  const returnRequested = order.returnRequest?.requested
+  const hasTracking = order.trackingInfo?.courierName || order.trackingInfo?.trackingId || order.trackingInfo?.trackingUrl
 
   return (
     <>
       <Helmet><title>Order Details — AUTOCRAFT</title></Helmet>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-28 pb-16">
 
-        {/* Header */}
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div>
             <button onClick={() => navigate('/my-orders')} className="flex items-center gap-2 text-dark-muted hover:text-dark-text text-sm mb-2 transition-colors">
@@ -181,26 +204,17 @@ export default function OrderDetailPage() {
           </div>
           <div className="flex gap-3 flex-wrap">
             {order.billUrl ? (
-              <a
-                href={order.billUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-outline flex items-center gap-2 text-sm py-2"
-              >
+              <a href={order.billUrl} target="_blank" rel="noopener noreferrer" className="btn-outline flex items-center gap-2 text-sm py-2">
                 <Download size={15} /> Download Bill
               </a>
             ) : (
-              <button
-                onClick={generatePDF}
-                className="btn-outline flex items-center gap-2 text-sm py-2"
-              >
+              <button onClick={generatePDF} className="btn-outline flex items-center gap-2 text-sm py-2">
                 <Download size={15} /> Download Invoice
               </button>
             )}
           </div>
         </div>
 
-        {/* Order Status Timeline */}
         {order.status !== 'cancelled' && (
           <div className="card p-6 mb-6">
             <h2 className="font-semibold text-dark-text mb-6">Order Status</h2>
@@ -233,8 +247,6 @@ export default function OrderDetailPage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Items */}
           <div className="lg:col-span-2 space-y-4">
             <div className="card p-6">
               <h2 className="font-semibold text-dark-text mb-4">Items Ordered</h2>
@@ -260,25 +272,16 @@ export default function OrderDetailPage() {
                         </p>
                       </div>
 
-                      {/* Review button — only if delivered */}
                       {order.status === 'delivered' && (
-                        <button
-                          onClick={() => setShowReview(showReview === item.product ? null : item.product)}
-                          className="text-xs btn-outline py-1.5 px-3 shrink-0"
-                        >
+                        <button onClick={() => setShowReview(showReview === item.product ? null : item.product)} className="text-xs btn-outline py-1.5 px-3 shrink-0">
                           <Star size={12} className="inline mr-1" />
                           Rate
                         </button>
                       )}
                     </div>
 
-                    {/* Inline review form */}
                     {showReview === item.product && order.status === 'delivered' && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="mt-3 p-4 bg-dark-border/20 rounded-xl"
-                      >
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-3 p-4 bg-dark-border/20 rounded-xl">
                         <p className="text-sm font-medium text-dark-text mb-3">Rate this product</p>
                         <div className="flex gap-2 mb-3">
                           {[1, 2, 3, 4, 5].map(n => (
@@ -295,11 +298,7 @@ export default function OrderDetailPage() {
                           className="input-field resize-none text-sm mb-3"
                         />
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => handleReviewSubmit(item.product)}
-                            disabled={submitting}
-                            className="btn-primary text-sm py-2 flex items-center gap-1"
-                          >
+                          <button onClick={() => handleReviewSubmit(item.product)} disabled={submitting} className="btn-primary text-sm py-2 flex items-center gap-1">
                             {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Submit Review'}
                           </button>
                           <button onClick={() => setShowReview(null)} className="btn-outline text-sm py-2">Cancel</button>
@@ -311,7 +310,60 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* Shipping Address */}
+            {order.status === 'delivered' && (
+              <div className={`card p-6 ${returnRequested ? 'border-blue-500/30 bg-blue-500/5' : returnOpen ? 'border-green-500/30 bg-green-500/5' : 'border-dark-border'}`}>
+                <h2 className="font-semibold text-dark-text mb-2 flex items-center gap-2">
+                  <RotateCcw size={16} className={returnRequested ? 'text-blue-400' : returnOpen ? 'text-green-400' : 'text-dark-muted'} />
+                  Return Product
+                </h2>
+
+                {returnRequested ? (
+                  <div>
+                    <p className="text-sm text-blue-400 font-medium capitalize">Return request {order.returnRequest.status}</p>
+                    <p className="text-xs text-dark-muted mt-1">
+                      Requested on {new Date(order.returnRequest.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                    {order.returnRequest.reason && (
+                      <p className="text-sm text-dark-muted mt-3">Reason: {order.returnRequest.reason}</p>
+                    )}
+                    {order.returnRequest.adminNote && (
+                      <p className="text-sm text-dark-muted mt-3">Admin note: {order.returnRequest.adminNote}</p>
+                    )}
+                    {order.returnRequest.history?.length > 0 && (
+                      <div className="mt-4 border-t border-dark-border pt-3 space-y-2">
+                        <p className="text-xs text-dark-muted uppercase tracking-wider">Return Trail</p>
+                        {order.returnRequest.history.map((h, idx) => (
+                          <div key={idx} className="text-xs text-dark-muted">
+                            <span className="text-dark-text capitalize">{h.status}</span>
+                            {' '}· {new Date(h.date).toLocaleString('en-IN')}
+                            {h.note ? ` · ${h.note}` : ''}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : returnOpen ? (
+                  <form onSubmit={handleReturnRequest} className="space-y-4">
+                    <p className="text-sm text-dark-muted">
+                      Return is available for this order. {returnDaysLeft} day{returnDaysLeft !== 1 ? 's' : ''} left in your 7 day return window.
+                    </p>
+                    <textarea
+                      value={returnReason}
+                      onChange={(e) => setReturnReason(e.target.value)}
+                      rows={3}
+                      className="input-field resize-none text-sm"
+                      placeholder="Tell us why you want to return this order..."
+                    />
+                    <button type="submit" disabled={returning} className="btn-primary text-sm py-2 flex items-center gap-2">
+                      {returning ? 'Submitting...' : 'Request Return'}
+                    </button>
+                  </form>
+                ) : (
+                  <p className="text-sm text-dark-muted">The 7 day return window for this delivered order has closed.</p>
+                )}
+              </div>
+            )}
+
             <div className="card p-6">
               <h2 className="font-semibold text-dark-text mb-4 flex items-center gap-2">
                 <MapPin size={16} className="text-primary-500" /> Delivery Address
@@ -323,7 +375,6 @@ export default function OrderDetailPage() {
             </div>
           </div>
 
-          {/* Summary */}
           <div className="space-y-4">
             <div className="card p-6">
               <h2 className="font-semibold text-dark-text mb-4">Order Summary</h2>
@@ -345,6 +396,38 @@ export default function OrderDetailPage() {
                 </div>
               </div>
             </div>
+
+            {hasTracking && (
+              <div className="card p-6">
+                <h2 className="font-semibold text-dark-text mb-4 flex items-center gap-2">
+                  <Truck size={16} className="text-primary-500" /> Tracking Details
+                </h2>
+                <div className="space-y-2 text-sm">
+                  {order.trackingInfo.courierName && (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-dark-muted">Courier</span>
+                      <span className="text-dark-text text-right">{order.trackingInfo.courierName}</span>
+                    </div>
+                  )}
+                  {order.trackingInfo.trackingId && (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-dark-muted">Tracking ID</span>
+                      <span className="text-primary-500 text-right font-mono break-all">{order.trackingInfo.trackingId}</span>
+                    </div>
+                  )}
+                  {order.trackingInfo.trackingUrl && (
+                    <a href={order.trackingInfo.trackingUrl} target="_blank" rel="noopener noreferrer" className="btn-outline text-sm py-2 w-full flex justify-center mt-3">
+                      Track Order
+                    </a>
+                  )}
+                  {order.trackingInfo.updatedAt && (
+                    <p className="text-xs text-dark-muted pt-2">
+                      Updated {new Date(order.trackingInfo.updatedAt).toLocaleString('en-IN')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="card p-6">
               <h2 className="font-semibold text-dark-text mb-4 flex items-center gap-2">
@@ -383,6 +466,16 @@ export default function OrderDetailPage() {
                   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
                 })}
               </p>
+              {order.shippedAt && (
+                <>
+                  <h2 className="font-semibold text-dark-text mb-2 mt-4">Shipped on</h2>
+                  <p className="text-purple-400 text-sm">
+                    {new Date(order.shippedAt).toLocaleDateString('en-IN', {
+                      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+                    })}
+                  </p>
+                </>
+              )}
               {order.deliveredAt && (
                 <>
                   <h2 className="font-semibold text-dark-text mb-2 mt-4">Delivered on</h2>
@@ -400,4 +493,3 @@ export default function OrderDetailPage() {
     </>
   )
 }
-

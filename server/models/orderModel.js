@@ -1,5 +1,31 @@
 import mongoose from 'mongoose';
 
+const returnHistorySchema = new mongoose.Schema({
+  status: { type: String, required: true },
+  note:   { type: String, default: '' },
+  date:   { type: Date, default: Date.now },
+}, { _id: false });
+
+const returnRequestSchema = new mongoose.Schema({
+  requested:   { type: Boolean, default: false },
+  requestedAt: { type: Date },
+  reason:      { type: String, trim: true, default: '' },
+  status: {
+    type: String,
+    enum: ['none', 'requested', 'approved', 'rejected', 'received', 'refunded'],
+    default: 'none',
+  },
+  adminNote: { type: String, trim: true, default: '' },
+  history:   [returnHistorySchema],
+}, { _id: false });
+
+const trackingInfoSchema = new mongoose.Schema({
+  courierName: { type: String, trim: true, default: '' },
+  trackingId:  { type: String, trim: true, default: '' },
+  trackingUrl: { type: String, trim: true, default: '' },
+  updatedAt:   { type: Date },
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema({
   user: {
     type:     mongoose.Schema.Types.ObjectId,
@@ -42,8 +68,14 @@ const orderSchema = new mongoose.Schema({
     enum:    ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending',
   },
-  deliveredAt: { type: Date },
-  billUrl:     { type: String, default: '' },
+  shippedAt:           { type: Date },
+  deliveredAt:         { type: Date },
+  inventoryDeducted:   { type: Boolean, default: false },
+  inventoryDeductedAt: { type: Date },
+  trackingInfo:        { type: trackingInfoSchema, default: () => ({}) },
+  returnRequest:       { type: returnRequestSchema, default: () => ({}) },
+  billUrl:             { type: String, default: '' },
 }, { timestamps: true });
 
 export default mongoose.model('Order', orderSchema);
+
