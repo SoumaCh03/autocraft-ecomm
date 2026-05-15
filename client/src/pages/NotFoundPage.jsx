@@ -27,6 +27,7 @@ export default function NotFoundPage() {
             Looks like this route drifted off track.
             The page you're trying to access
             doesn&apos;t exist or may have been moved.
+            Let&apos;s get you back on track.
           </p>
 
           <div className="autocraft-404-actions">
