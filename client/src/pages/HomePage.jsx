@@ -144,7 +144,7 @@ export default function HomePage() {
             </div>
           </motion.div>
 
-          <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.6, delay: 0.4 }} className="flex flex-wrap justify-center gap-8 mt-16">
+          <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.6, delay: 0.4 }} className="flex flex-wrap justify-center gap-8 mt-9">
             {[
               ['5,000+', 'Happy Customers'],
               ['500+', 'Products'],
