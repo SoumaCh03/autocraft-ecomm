@@ -8,6 +8,7 @@ import { ThemeProvider } from './context/ThemeContext.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { CartProvider } from './context/CartContext.jsx'
 import './index.css'
+import './App.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -17,6 +18,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <AuthProvider>
             <CartProvider>
               <App />
+
               <Toaster
                 position="top-right"
                 toastOptions={{
@@ -26,7 +28,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                     border: '1px solid #1a2236',
                     borderRadius: '12px',
                   },
-                  success: { iconTheme: { primary: '#3b6bff', secondary: '#fff' } },
+                  success: {
+                    iconTheme: {
+                      primary: '#3b6bff',
+                      secondary: '#fff',
+                    },
+                  },
                 }}
               />
             </CartProvider>
