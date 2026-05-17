@@ -1,21 +1,75 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react'
+import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, BadgePercent, X } from 'lucide-react'
+import axios from 'axios'
+import toast from 'react-hot-toast'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { Helmet } from 'react-helmet-async'
+import BASE_URL from '../utils/api'
+
+const API = BASE_URL
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQty, cartTotal, clearCart } = useCart()
-  const { user }    = useAuth()
-  const navigate    = useNavigate()
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [couponCode, setCouponCode] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [discount, setDiscount] = useState(0)
+  const [couponLoading, setCouponLoading] = useState(false)
 
-  const shipping    = cartTotal >= 999 ? 0 : 99
-  const grandTotal  = cartTotal + shipping
+  const shipping = cartTotal >= 999 ? 0 : 99
+  const grandTotal = Math.max(0, cartTotal - discount + shipping)
+
+  const applyCoupon = async (e) => {
+    e.preventDefault()
+    if (!user) return toast.error('Please login to apply coupons')
+    if (!couponCode.trim()) return toast.error('Enter a coupon code')
+
+    setCouponLoading(true)
+    try {
+      const { data } = await axios.post(`${API}/coupons/validate`, {
+        code: couponCode.trim(),
+        subtotal: cartTotal,
+      }, { withCredentials: true })
+
+      setAppliedCoupon(data.coupon)
+      setDiscount(data.discount || 0)
+      setCouponCode(data.coupon.code)
+      toast.success(data.message || 'Coupon applied')
+    } catch (err) {
+      setAppliedCoupon(null)
+      setDiscount(0)
+      toast.error(err.response?.data?.message || 'Coupon validation failed')
+    } finally {
+      setCouponLoading(false)
+    }
+  }
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null)
+    setDiscount(0)
+    setCouponCode('')
+  }
+
+  const goToCheckout = () => {
+    navigate('/checkout', {
+      state: {
+        cartItems,
+        cartTotal,
+        shipping,
+        grandTotal,
+        discount,
+        couponCode: appliedCoupon?.code || '',
+      },
+    })
+  }
 
   if (cartItems.length === 0) return (
     <>
-      <Helmet><title>Cart — AUTOCRAFT</title></Helmet>
+      <Helmet><title>Cart - AUTOCRAFT</title></Helmet>
       <div className="min-h-screen flex flex-col items-center justify-center text-center px-4 pt-20">
         <ShoppingBag size={64} className="text-dark-border mb-4" />
         <h2 className="font-display text-2xl font-bold text-dark-text mb-2">Your cart is empty</h2>
@@ -27,7 +81,7 @@ export default function CartPage() {
 
   return (
     <>
-      <Helmet><title>Cart — AUTOCRAFT</title></Helmet>
+      <Helmet><title>Cart - AUTOCRAFT</title></Helmet>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
         <div className="flex items-center justify-between mb-8">
           <h1 className="font-display text-3xl font-bold text-dark-text">Your Cart</h1>
@@ -35,8 +89,6 @@ export default function CartPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* Items */}
           <div className="lg:col-span-2 space-y-4">
             {cartItems.map((item, i) => (
               <motion.div
@@ -55,18 +107,21 @@ export default function CartPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-dark-text text-sm line-clamp-2">{item.name}</p>
                   <p className="text-xs text-primary-500 capitalize mt-0.5">{item.category}</p>
-                  <p className="font-bold text-dark-text mt-1">₹{item.price.toLocaleString()}</p>
+                  <p className="font-bold text-dark-text mt-1">Rs.{Number(item.price || 0).toLocaleString('en-IN')}</p>
+                  {Number(item.stock || 0) > 0 && Number(item.stock || 0) <= 5 && (
+                    <p className="text-xs text-orange-400 mt-1">Only {item.stock} left</p>
+                  )}
                 </div>
                 <div className="flex flex-col items-end justify-between">
-                  <button onClick={() => removeFromCart(item._id)} className="text-dark-muted hover:text-red-400 transition-colors">
+                  <button onClick={() => removeFromCart(item._id)} className="text-dark-muted hover:text-red-400 transition-colors" aria-label={`Remove ${item.name}`}>
                     <Trash2 size={15} />
                   </button>
                   <div className="flex items-center gap-2 bg-dark-border/50 rounded-xl px-2 py-1">
-                    <button onClick={() => updateQty(item._id, item.qty - 1)} className="text-dark-muted hover:text-dark-text">
+                    <button onClick={() => updateQty(item._id, item.qty - 1)} className="text-dark-muted hover:text-dark-text" aria-label="Decrease quantity">
                       <Minus size={13} />
                     </button>
                     <span className="text-dark-text text-sm font-medium w-6 text-center">{item.qty}</span>
-                    <button onClick={() => updateQty(item._id, item.qty + 1)} className="text-dark-muted hover:text-dark-text">
+                    <button onClick={() => updateQty(item._id, item.qty + 1)} className="text-dark-muted hover:text-dark-text" aria-label="Increase quantity">
                       <Plus size={13} />
                     </button>
                   </div>
@@ -75,36 +130,69 @@ export default function CartPage() {
             ))}
           </div>
 
-          {/* Summary */}
           <div className="lg:col-span-1">
             <div className="card p-6 sticky top-24">
               <h2 className="font-display text-lg font-bold text-dark-text mb-6">Order Summary</h2>
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-dark-muted">Subtotal ({cartItems.length} items)</span>
-                  <span className="text-dark-text">₹{cartTotal.toLocaleString()}</span>
+                  <span className="text-dark-text">Rs.{cartTotal.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-dark-muted">Shipping</span>
                   <span className={shipping === 0 ? 'text-green-400' : 'text-dark-text'}>
-                    {shipping === 0 ? 'FREE' : `₹${shipping}`}
+                    {shipping === 0 ? 'FREE' : `Rs.${shipping}`}
                   </span>
                 </div>
                 {shipping > 0 && (
-                  <p className="text-xs text-dark-muted">Add ₹{(999 - cartTotal).toLocaleString()} more for free shipping</p>
+                  <p className="text-xs text-dark-muted">Add Rs.{(999 - cartTotal).toLocaleString('en-IN')} more for free shipping</p>
                 )}
+
+                <form onSubmit={applyCoupon} className="pt-3 space-y-2">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <BadgePercent size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-500" />
+                      <input
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        className="input-field py-2 pl-9 text-sm"
+                        placeholder="WELCOME10"
+                        disabled={!!appliedCoupon}
+                      />
+                    </div>
+                    {appliedCoupon ? (
+                      <button type="button" onClick={removeCoupon} className="btn-outline py-2 px-3" aria-label="Remove coupon">
+                        <X size={15} />
+                      </button>
+                    ) : (
+                      <button type="submit" disabled={couponLoading} className="btn-outline py-2 px-4 text-sm">
+                        {couponLoading ? 'Checking' : 'Apply'}
+                      </button>
+                    )}
+                  </div>
+                  {appliedCoupon && (
+                    <p className="text-xs text-green-400">
+                      {appliedCoupon.code} saved Rs.{discount.toLocaleString('en-IN')}
+                    </p>
+                  )}
+                </form>
+
+                {discount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-dark-muted">Discount</span>
+                    <span className="text-green-400">-Rs.{discount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+
                 <hr className="border-dark-border" />
                 <div className="flex justify-between font-bold">
                   <span className="text-dark-text">Total</span>
-                  <span className="text-dark-text text-lg">₹{grandTotal.toLocaleString()}</span>
+                  <span className="text-dark-text text-lg">Rs.{grandTotal.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
               {user ? (
-                <button
-                  onClick={() => navigate('/checkout', { state: { cartItems, cartTotal, shipping, grandTotal } })}
-                  className="btn-primary w-full flex items-center justify-center gap-2"
-                >
+                <button onClick={goToCheckout} className="btn-primary w-full flex items-center justify-center gap-2">
                   Proceed to Checkout <ArrowRight size={16} />
                 </button>
               ) : (
@@ -123,4 +211,3 @@ export default function CartPage() {
     </>
   )
 }
-

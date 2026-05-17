@@ -22,6 +22,7 @@ import ProfilePage from './pages/ProfilePage'
 import OrdersPage from './pages/OrdersPage'
 import OrderDetailPage from './pages/OrderDetailPage'
 import NotFoundPage from './pages/NotFoundPage'
+import Wishlist from './pages/Wishlist'
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -79,6 +80,7 @@ export default function App() {
     '/order-success',
     '/profile',
     '/my-orders',
+    '/wishlist',
     '/admin',
     '/admin/products',
     '/admin/orders',
@@ -125,6 +127,7 @@ export default function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/my-orders" element={<OrdersPage />} />
               <Route path="/order/:id" element={<OrderDetailPage />} />
+              <Route path="/wishlist" element={<Wishlist />} />
             </Route>
 
             {/* Admin */}

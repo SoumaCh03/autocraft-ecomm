@@ -67,7 +67,7 @@ export default function RegisterPage() {
     try {
       await axios.post(`${API}/auth/send-otp`, { email: form.email, type: 'register' })
       toast.success('New OTP sent!')
-    } catch (err) {
+    } catch {
       toast.error('Failed to resend OTP')
     } finally {
       setSending(false)

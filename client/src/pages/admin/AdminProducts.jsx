@@ -113,12 +113,9 @@ export default function AdminProducts() {
     }
 
     // Determine final images array
-    let finalImages = []
-    if (imageMode === 'url') {
-      finalImages = imageUrl.split(',').map(s => s.trim()).filter(Boolean)
-    } else {
-      finalImages = uploadedImgs.map(img => img.url)
-    }
+    const finalImages = imageMode === 'url'
+      ? imageUrl.split(',').map(s => s.trim()).filter(Boolean)
+      : uploadedImgs.map(img => img.url)
 
     if (finalImages.length === 0) {
       return toast.error('Please add at least one product image')
@@ -409,7 +406,12 @@ export default function AdminProducts() {
                       <p className="text-sm font-semibold text-dark-text">Rs.{p.price.toLocaleString()}</p>
                       {p.mrp > p.price && <p className="text-xs text-dark-muted line-through">Rs.{p.mrp.toLocaleString()}</p>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-dark-text">{p.stock}</td>
+                    <td className="px-4 py-3">
+                      <p className="text-sm text-dark-text">{p.stock}</p>
+                      {Number(p.stock || 0) > 0 && Number(p.stock || 0) <= 5 && (
+                        <p className="text-xs text-orange-400 mt-0.5">Low stock warning</p>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                         p.isOutOfStock ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'

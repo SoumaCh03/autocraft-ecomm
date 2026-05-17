@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ShoppingCart, Star, ArrowLeft, Shield, Truck, Package, Mail } from 'lucide-react'
+import { ShoppingCart, Star, ArrowLeft, Shield, Truck, Package, Mail, Heart, BadgeCheck } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
+import { useWishlist } from '../context/WishlistContext'
 import { Helmet } from 'react-helmet-async'
 import BASE_URL from '../utils/api'
 import Skeleton from '../components/ui/Skeleton'
@@ -17,6 +18,7 @@ export default function ProductPage() {
   const navigate = useNavigate()
   const { addToCart } = useCart()
   const { user } = useAuth()
+  const { isWishlisted, toggleWishlist } = useWishlist()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -190,12 +192,63 @@ export default function ProductPage() {
   const discount = product.mrp > product.price
     ? Math.round((1 - product.price / product.mrp) * 100)
     : 0
+  const lowStock = !isOutOfStock && Number(product.stock || 0) <= 5
+  const productUrl = `${window.location.origin}/product/${product._id}`
+  const productImage = product.images?.[0] || `${window.location.origin}/logo.png`
+  const seoDescription = product.description?.slice(0, 155) || `${product.name} by AUTOCRAFT`
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    image: product.images || [],
+    description: product.description,
+    sku: product._id,
+    brand: { '@type': 'Brand', name: 'AUTOCRAFT' },
+    category: product.category,
+    offers: {
+      '@type': 'Offer',
+      url: productUrl,
+      priceCurrency: 'INR',
+      price: product.price,
+      availability: isOutOfStock ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+      itemCondition: 'https://schema.org/NewCondition',
+    },
+    aggregateRating: product.numReviews > 0 ? {
+      '@type': 'AggregateRating',
+      ratingValue: product.rating,
+      reviewCount: product.numReviews,
+    } : undefined,
+  }
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: window.location.origin },
+      { '@type': 'ListItem', position: 2, name: 'Shop', item: `${window.location.origin}/shop` },
+      { '@type': 'ListItem', position: 3, name: product.name, item: productUrl },
+    ],
+  }
 
   return (
     <>
       <Helmet>
-        <title>{product.name} — AUTOCRAFT</title>
-        <meta name="description" content={product.description} />
+        <title>{product.name} - AUTOCRAFT</title>
+        <meta name="description" content={seoDescription} />
+        <meta name="keywords" content={[product.name, product.category, ...(product.tags || []), ...(product.carBrands || []), 'AUTOCRAFT', 'car accessories india'].join(', ')} />
+        <meta property="og:type" content="product" />
+        <meta property="og:title" content={`${product.name} - AUTOCRAFT`} />
+        <meta property="og:description" content={seoDescription} />
+        <meta property="og:image" content={productImage} />
+        <meta property="og:url" content={productUrl} />
+        <meta property="product:price:amount" content={String(product.price)} />
+        <meta property="product:price:currency" content="INR" />
+        <meta property="product:availability" content={isOutOfStock ? 'out of stock' : 'in stock'} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${product.name} - AUTOCRAFT`} />
+        <meta name="twitter:description" content={seoDescription} />
+        <meta name="twitter:image" content={productImage} />
+        <script type="application/ld+json">{JSON.stringify(schema)}</script>
+        <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
@@ -232,7 +285,21 @@ export default function ProductPage() {
 
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
             <span className="text-xs text-primary-500 uppercase tracking-widest font-medium">{product.category}</span>
-            <h1 className="font-display text-3xl font-bold text-dark-text mt-2 mb-4">{product.name}</h1>
+            <div className="flex items-start justify-between gap-4 mt-2 mb-4">
+              <h1 className="font-display text-3xl font-bold text-dark-text">{product.name}</h1>
+              <button
+                type="button"
+                onClick={() => toggleWishlist(product)}
+                className={`p-3 rounded-2xl border transition-all ${
+                  isWishlisted(product._id)
+                    ? 'bg-red-500 text-white border-red-500 shadow-[0_0_28px_rgba(239,68,68,0.25)]'
+                    : 'border-dark-border text-dark-muted hover:text-red-400 hover:border-red-500/40'
+                }`}
+                aria-label={`${isWishlisted(product._id) ? 'Remove from' : 'Add to'} wishlist`}
+              >
+                <Heart size={20} className={isWishlisted(product._id) ? 'fill-current' : ''} />
+              </button>
+            </div>
 
             {product.numReviews > 0 && (
               <div className="flex items-center gap-2 mb-4">
@@ -270,7 +337,7 @@ export default function ProductPage() {
             <div className="flex items-center gap-2 mb-6">
               <div className={`w-2 h-2 rounded-full ${isOutOfStock ? 'bg-red-400' : 'bg-green-400'}`} />
               <span className={`text-sm font-medium ${isOutOfStock ? 'text-red-400' : 'text-green-400'}`}>
-                {isOutOfStock ? 'Out of Stock' : `In Stock (${product.stock} left)`}
+                {isOutOfStock ? 'Out of Stock' : lowStock ? `Only ${product.stock} left` : `In Stock (${product.stock} left)`}
               </span>
             </div>
 
@@ -351,6 +418,11 @@ export default function ProductPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-dark-text">{r.name}</p>
+                      {r.verifiedPurchase && (
+                        <p className="text-[11px] text-green-400 flex items-center gap-1 mt-0.5">
+                          <BadgeCheck size={11} /> Verified Purchase
+                        </p>
+                      )}
                       <div className="flex">
                         {[...Array(5)].map((_, j) => (
                           <Star key={j} size={10} className={j < r.rating ? 'fill-yellow-400 text-yellow-400' : 'text-dark-border'} />

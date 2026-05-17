@@ -257,11 +257,23 @@ router.post('/:id/review', protect, async (req, res) => {
       return res.status(400).json({ message: 'You have already reviewed this product' });
     }
 
+    const deliveredOrder = await Order.findOne({
+      user: req.user._id,
+      status: 'delivered',
+      'items.product': product._id,
+    }).sort({ deliveredAt: -1, updatedAt: -1 });
+
+    if (!deliveredOrder) {
+      return res.status(403).json({ message: 'Only delivered verified purchases can be reviewed' });
+    }
+
     product.reviews.push({
-      user:    req.user._id,
-      name:    req.user.name,
-      rating:  Number(rating),
+      user:             req.user._id,
+      name:             req.user.name,
+      rating:           Number(rating),
       comment,
+      verifiedPurchase: true,
+      order:            deliveredOrder._id,
     });
 
     product.numReviews = product.reviews.length;

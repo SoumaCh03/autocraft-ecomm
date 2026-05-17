@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ShoppingCart, User, Sun, Moon, Menu, X, ChevronDown, Search } from 'lucide-react'
+import { ShoppingCart, User, Sun, Moon, Menu, X, ChevronDown, Search, Heart } from 'lucide-react'
 import { useTheme } from '../../context/ThemeContext'
 import { useAuth } from '../../context/AuthContext'
 import { useCart } from '../../context/CartContext'
+import { useWishlist } from '../../context/WishlistContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import logo from '../../assets/logo.png'
 
@@ -34,6 +35,7 @@ export default function Navbar() {
   const { isDark, toggleTheme } = useTheme()
   const { user, logout }        = useAuth()
   const { cartCount }           = useCart()
+  const { wishlist }            = useWishlist()
   const navigate                = useNavigate()
 
   const [scrolled,      setScrolled]      = useState(false)
@@ -213,6 +215,19 @@ export default function Navbar() {
               >
                 {isDark ? <Sun size={18} /> : <Moon size={18} />}
               </button>
+
+              <Link
+                to="/wishlist"
+                aria-label={`View wishlist${wishlist.length > 0 ? `, ${wishlist.length} saved` : ''}`}
+                className="relative p-2 text-dark-muted hover:text-dark-text transition-colors rounded-lg hover:bg-dark-card"
+              >
+                <Heart size={18} />
+                {wishlist.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                    {wishlist.length}
+                  </span>
+                )}
+              </Link>
 
               <Link
                 to="/cart"

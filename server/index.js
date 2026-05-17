@@ -14,6 +14,7 @@ import productRoutes from './routes/productRoutes.js';
 import orderRoutes   from './routes/orderRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import uploadRoutes  from './routes/uploadRoutes.js';
+import couponRoutes  from './routes/couponRoutes.js';
 
 connectDB();
 
@@ -75,6 +76,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders',   orderRoutes);
 app.use('/api/payment',  paymentRoutes);
 app.use('/api/upload',   uploadRoutes);
+app.use('/api/coupons',  couponRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'AUTOCRAFT server running' });

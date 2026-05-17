@@ -17,6 +17,8 @@ import {
   Trophy,
   Layers,
   ArrowRight,
+  BadgePercent,
+  Trash2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import jsPDF from 'jspdf'
@@ -30,18 +32,31 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ products: 0, orders: 0 })
   const [products, setProducts] = useState([])
   const [orders, setOrders] = useState([])
+  const [coupons, setCoupons] = useState([])
+  const [couponForm, setCouponForm] = useState({
+    code: '',
+    type: 'percentage',
+    value: '',
+    expiry: '',
+    minimumOrder: '',
+    usageLimit: '',
+    active: true,
+  })
   const [exporting, setExporting] = useState(false)
+  const [savingCoupon, setSavingCoupon] = useState(false)
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [p, o] = await Promise.all([
+        const [p, o, c] = await Promise.all([
           axios.get(`${API}/products?limit=1000`, { withCredentials: true }),
           axios.get(`${API}/orders`, { withCredentials: true }),
+          axios.get(`${API}/coupons`, { withCredentials: true }),
         ])
 
         setProducts(p.data.products || [])
         setOrders(o.data.orders || [])
+        setCoupons(c.data.coupons || [])
         setStats({
           products: p.data.total,
           orders: o.data.orders?.length || 0,
@@ -79,6 +94,9 @@ export default function AdminDashboard() {
   const deliveredOrders = orders.filter((order) => order.status === 'delivered').length
   const returnRequests = orders.filter((order) => order.returnRequest?.status === 'requested').length
   const lowStockProducts = products.filter((product) => Number(product.stock || 0) <= 5 || product.isOutOfStock)
+  const couponUsage = coupons.reduce((sum, coupon) => sum + Number(coupon.usedCount || 0), 0)
+  const couponRevenueImpact = coupons.reduce((sum, coupon) => sum + Number(coupon.revenueImpact || 0), 0)
+  const activeCoupons = coupons.filter((coupon) => coupon.active && new Date(coupon.expiry).getTime() >= now.getTime()).length
 
   const monthlySalesRows = () => {
     const grouped = {}
@@ -348,6 +366,41 @@ export default function AdminDashboard() {
     }
   }
 
+  const saveCoupon = async (e) => {
+    e.preventDefault()
+    if (!couponForm.code || !couponForm.value || !couponForm.expiry) {
+      return toast.error('Coupon code, value and expiry are required')
+    }
+
+    setSavingCoupon(true)
+    try {
+      const { data } = await axios.post(`${API}/coupons`, {
+        ...couponForm,
+        value: Number(couponForm.value),
+        minimumOrder: Number(couponForm.minimumOrder || 0),
+        usageLimit: Number(couponForm.usageLimit || 0),
+      }, { withCredentials: true })
+      setCoupons(prev => [data.coupon, ...prev])
+      setCouponForm({ code: '', type: 'percentage', value: '', expiry: '', minimumOrder: '', usageLimit: '', active: true })
+      toast.success('Coupon created')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Coupon save failed')
+    } finally {
+      setSavingCoupon(false)
+    }
+  }
+
+  const deleteCoupon = async (id) => {
+    if (!window.confirm('Delete this coupon?')) return
+    try {
+      await axios.delete(`${API}/coupons/${id}`, { withCredentials: true })
+      setCoupons(prev => prev.filter((coupon) => coupon._id !== id))
+      toast.success('Coupon deleted')
+    } catch {
+      toast.error('Coupon delete failed')
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
       <div className="mb-8">
@@ -366,6 +419,8 @@ export default function AdminDashboard() {
           [RotateCcw, 'Return Requests', returnRequests, 'bg-red-500/10 text-red-400 border-red-500/20'],
           [AlertTriangle, 'Low Stock Products', lowStockProducts.length, 'bg-orange-500/10 text-orange-400 border-orange-500/20'],
           [Package, 'Total Products', stats.products, 'bg-primary-500/10 text-primary-500 border-primary-500/20'],
+          [BadgePercent, 'Active Coupons', activeCoupons, 'bg-green-500/10 text-green-400 border-green-500/20'],
+          [BadgePercent, 'Coupon Savings', formatCurrency(couponRevenueImpact), 'bg-accent-400/10 text-accent-400 border-accent-400/20'],
         ].map(([Icon, label, value, tone]) => (
           <div key={label} className="card p-5 relative overflow-hidden border-dark-border/80 bg-dark-card/80 shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-primary-500/5 pointer-events-none" />
@@ -560,6 +615,93 @@ export default function AdminDashboard() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-10">
+        <div className="card p-6">
+          <div className="flex items-center justify-between gap-4 mb-5">
+            <div>
+              <h2 className="font-display text-xl font-bold text-dark-text">Create Coupon</h2>
+              <p className="text-dark-muted text-sm mt-1">Discount codes with expiry and usage control</p>
+            </div>
+            <BadgePercent size={22} className="text-green-400" />
+          </div>
+
+          <form onSubmit={saveCoupon} className="space-y-3">
+            <input value={couponForm.code} onChange={(e) => setCouponForm(prev => ({ ...prev, code: e.target.value.toUpperCase() }))} className="input-field text-sm" placeholder="WELCOME10" />
+            <div className="grid grid-cols-2 gap-3">
+              <select value={couponForm.type} onChange={(e) => setCouponForm(prev => ({ ...prev, type: e.target.value }))} className="input-field text-sm">
+                <option value="percentage">Percentage</option>
+                <option value="fixed">Fixed</option>
+              </select>
+              <input type="number" value={couponForm.value} onChange={(e) => setCouponForm(prev => ({ ...prev, value: e.target.value }))} className="input-field text-sm" placeholder="Value" />
+            </div>
+            <input type="date" value={couponForm.expiry} onChange={(e) => setCouponForm(prev => ({ ...prev, expiry: e.target.value }))} className="input-field text-sm" />
+            <div className="grid grid-cols-2 gap-3">
+              <input type="number" value={couponForm.minimumOrder} onChange={(e) => setCouponForm(prev => ({ ...prev, minimumOrder: e.target.value }))} className="input-field text-sm" placeholder="Minimum order" />
+              <input type="number" value={couponForm.usageLimit} onChange={(e) => setCouponForm(prev => ({ ...prev, usageLimit: e.target.value }))} className="input-field text-sm" placeholder="Usage limit" />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-dark-text">
+              <input type="checkbox" checked={couponForm.active} onChange={(e) => setCouponForm(prev => ({ ...prev, active: e.target.checked }))} className="w-4 h-4 accent-primary-500" />
+              Active coupon
+            </label>
+            <button type="submit" disabled={savingCoupon} className="btn-primary w-full flex justify-center">
+              {savingCoupon ? 'Saving...' : 'Create Coupon'}
+            </button>
+          </form>
+        </div>
+
+        <div className="card p-6 xl:col-span-2">
+          <div className="flex items-center justify-between gap-4 mb-5">
+            <div>
+              <h2 className="font-display text-xl font-bold text-dark-text">Coupon Analytics</h2>
+              <p className="text-dark-muted text-sm mt-1">{couponUsage} uses · {formatCurrency(couponRevenueImpact)} revenue impact</p>
+            </div>
+            <BadgePercent size={22} className="text-primary-500" />
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-dark-border">
+                  <th className="text-left px-3 py-3 text-xs text-dark-muted uppercase tracking-wider">Code</th>
+                  <th className="text-left px-3 py-3 text-xs text-dark-muted uppercase tracking-wider">Discount</th>
+                  <th className="text-left px-3 py-3 text-xs text-dark-muted uppercase tracking-wider">Usage</th>
+                  <th className="text-left px-3 py-3 text-xs text-dark-muted uppercase tracking-wider">Impact</th>
+                  <th className="text-left px-3 py-3 text-xs text-dark-muted uppercase tracking-wider">Status</th>
+                  <th className="text-left px-3 py-3 text-xs text-dark-muted uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-dark-border">
+                {coupons.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-3 py-8 text-center text-sm text-dark-muted">No coupons created yet</td>
+                  </tr>
+                ) : coupons.map((coupon) => {
+                  const expired = new Date(coupon.expiry).getTime() < now.getTime()
+                  return (
+                    <tr key={coupon._id} className="hover:bg-dark-border/20 transition-colors">
+                      <td className="px-3 py-3 text-sm font-semibold text-dark-text">{coupon.code}</td>
+                      <td className="px-3 py-3 text-sm text-dark-muted">{coupon.type === 'percentage' ? `${coupon.value}%` : formatCurrency(coupon.value)}</td>
+                      <td className="px-3 py-3 text-sm text-dark-muted">{coupon.usedCount || 0}{coupon.usageLimit ? `/${coupon.usageLimit}` : ''}</td>
+                      <td className="px-3 py-3 text-sm font-semibold text-dark-text">{formatCurrency(coupon.revenueImpact)}</td>
+                      <td className="px-3 py-3">
+                        <span className={`text-xs px-2 py-1 rounded-full ${coupon.active && !expired ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                          {coupon.active && !expired ? 'Active' : expired ? 'Expired' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <button onClick={() => deleteCoupon(coupon._id)} className="p-1.5 text-dark-muted hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all" aria-label={`Delete ${coupon.code}`}>
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

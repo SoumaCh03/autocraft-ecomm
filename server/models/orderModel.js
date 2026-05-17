@@ -59,6 +59,13 @@ const orderSchema = new mongoose.Schema({
     status:              String,
   },
   itemsPrice:    { type: Number, required: true },
+  discountPrice: { type: Number, required: true, default: 0 },
+  coupon: {
+    code:     { type: String, trim: true, uppercase: true, default: '' },
+    type:     { type: String, enum: ['percentage', 'fixed', ''], default: '' },
+    value:    { type: Number, default: 0 },
+    discount: { type: Number, default: 0 },
+  },
   shippingPrice: { type: Number, required: true, default: 0 },
   totalPrice:    { type: Number, required: true },
   isPaid:        { type: Boolean, default: false },
@@ -75,7 +82,16 @@ const orderSchema = new mongoose.Schema({
   trackingInfo:        { type: trackingInfoSchema, default: () => ({}) },
   returnRequest:       { type: returnRequestSchema, default: () => ({}) },
   billUrl:             { type: String, default: '' },
+  invoiceNumber:       { type: String, default: '' },
+  invoiceGeneratedAt:  { type: Date },
 }, { timestamps: true });
+
+orderSchema.pre('save', function () {
+  if (!this.invoiceNumber) {
+    this.invoiceNumber = `AC-${new Date().getFullYear()}-${this._id.toString().slice(-8).toUpperCase()}`;
+    this.invoiceGeneratedAt = new Date();
+  }
+});
 
 export default mongoose.model('Order', orderSchema);
 

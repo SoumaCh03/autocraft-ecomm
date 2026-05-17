@@ -10,7 +10,7 @@ import toast from 'react-hot-toast'
 import { Helmet } from 'react-helmet-async'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { useAuth } from '../context/AuthContext'
+import { downloadInvoice } from '../utils/invoice'
 
 import BASE_URL from '../utils/api'
 
@@ -22,8 +22,6 @@ const RETURN_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 export default function OrderDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
-
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [review, setReview] = useState({ rating: 5, comment: '', productId: '' })
@@ -79,6 +77,7 @@ export default function OrderDetailPage() {
   }
 
   const generatePDF = () => {
+    downloadInvoice(order, toast)
     const doc = new jsPDF()
 
     doc.setFontSize(20)
@@ -153,8 +152,7 @@ export default function OrderDetailPage() {
     doc.text('Thank you for shopping with AUTOCRAFT!', 14, finalY)
     doc.text('For support: hello@autocraft.in', 14, finalY + 5)
 
-    doc.save(`AUTOCRAFT-Invoice-${order._id}.pdf`)
-    toast.success('Invoice downloaded!')
+    // Legacy layout retained above for compatibility; premium invoice download is handled first.
   }
 
   const handleReviewSubmit = async (productId) => {

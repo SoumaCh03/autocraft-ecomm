@@ -1,7 +1,9 @@
 import { useLocation, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle, Package, ArrowRight } from 'lucide-react'
+import { CheckCircle, Package, ArrowRight, Download } from 'lucide-react'
 import { Helmet } from 'react-helmet-async'
+import toast from 'react-hot-toast'
+import { downloadInvoice } from '../utils/invoice'
 
 export default function OrderSuccess() {
   const { state } = useLocation()
@@ -44,6 +46,11 @@ export default function OrderSuccess() {
             <Link to="/my-orders" className="btn-primary flex items-center justify-center gap-2">
               <Package size={16} /> View My Orders
             </Link>
+            {order && (
+              <button onClick={() => downloadInvoice(order, toast)} className="btn-outline flex items-center justify-center gap-2">
+                <Download size={16} /> Download Invoice
+              </button>
+            )}
             <Link to="/shop" className="btn-outline flex items-center justify-center gap-2">
               Continue Shopping <ArrowRight size={16} />
             </Link>

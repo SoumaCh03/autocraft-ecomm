@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { MapPin, CreditCard, CheckCircle } from 'lucide-react'
+import { MapPin, CreditCard } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { useCart } from '../context/CartContext'
@@ -22,6 +22,8 @@ export default function CheckoutPage() {
   const cartTotal  = state?.cartTotal  || 0
   const shipping   = state?.shipping   || 0
   const grandTotal = state?.grandTotal || 0
+  const discount   = state?.discount   || 0
+  const couponCode = state?.couponCode || ''
 
   const [address, setAddress] = useState({
     name:    user?.name || '',
@@ -77,6 +79,8 @@ export default function CheckoutPage() {
         shippingAddress: address,
         paymentMethod:   'razorpay',
         itemsPrice:      cartTotal,
+        discountPrice:   discount,
+        couponCode,
         shippingPrice:   shipping,
         totalPrice:      grandTotal,
       }, { withCredentials: true })
@@ -102,13 +106,13 @@ export default function CheckoutPage() {
         theme: { color: '#3b6bff' },
         handler: async (response) => {
           try {
-            await axios.post(`${API}/payment/verify`, {
+            const { data: verifiedData } = await axios.post(`${API}/payment/verify`, {
               ...response,
               orderId: orderData.order._id,
             }, { withCredentials: true })
 
             clearCart()
-            navigate('/order-success', { state: { order: orderData.order } })
+            navigate('/order-success', { state: { order: verifiedData.order || orderData.order } })
 
           } catch {
             toast.error('Payment verification failed')
@@ -240,6 +244,12 @@ export default function CheckoutPage() {
                   {shipping === 0 ? 'FREE' : `₹${shipping}`}
                 </span>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-dark-muted">Discount {couponCode ? `(${couponCode})` : ''}</span>
+                  <span className="text-green-400">-₹{discount.toLocaleString()}</span>
+                </div>
+              )}
               <hr className="border-dark-border" />
               <div className="flex justify-between font-bold text-base">
                 <span className="text-dark-text">Total</span>

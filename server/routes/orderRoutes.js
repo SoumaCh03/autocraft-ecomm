@@ -2,8 +2,11 @@ import express from 'express';
 import Order from '../models/orderModel.js';
 import Product from '../models/productModel.js';
 import User from '../models/userModel.js';
+import Coupon from '../models/couponModel.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import sendEmail from '../utils/sendEmail.js';
+import { deductInventoryForOrder } from '../utils/orderInventory.js';
+import { calculateDiscount, validateCoupon } from './couponRoutes.js';
 
 const router = express.Router();
 
@@ -14,37 +17,40 @@ const isReturnWindowOpen = (order) => {
   return Date.now() - new Date(order.deliveredAt).getTime() <= RETURN_WINDOW_MS;
 };
 
-const deductInventoryForOrder = async (order) => {
-  if (order.inventoryDeducted) return;
-
-  for (const item of order.items) {
-    const product = await Product.findById(item.product);
-    if (!product) throw new Error(`Product not found: ${item.name}`);
-    if (product.stock < item.qty) {
-      throw new Error(`Insufficient stock for ${item.name}. Available: ${product.stock}, required: ${item.qty}`);
-    }
-  }
-
-  for (const item of order.items) {
-    const product = await Product.findById(item.product);
-    product.stock = Math.max(0, product.stock - Number(item.qty || 1));
-    product.soldCount = Number(product.soldCount || 0) + Number(item.qty || 1);
-    product.salesHistory.push({
-      order: order._id,
-      qty: Number(item.qty || 1),
-      soldAt: new Date(),
-    });
-    await product.save();
-  }
-
-  order.inventoryDeducted = true;
-  order.inventoryDeductedAt = new Date();
-};
-
 router.post('/', protect, async (req, res) => {
   try {
-    const { items, shippingAddress, paymentMethod, itemsPrice, shippingPrice, totalPrice } = req.body;
+    const { items, shippingAddress, paymentMethod, itemsPrice, shippingPrice, totalPrice, couponCode } = req.body;
     if (!items || items.length === 0) return res.status(400).json({ message: 'No items in order' });
+
+    for (const item of items) {
+      const product = await Product.findById(item.product);
+      if (!product) return res.status(404).json({ message: `Product not found: ${item.name}` });
+      if (product.isOutOfStock || Number(product.stock || 0) <= 0) {
+        return res.status(400).json({ message: `${product.name} is out of stock` });
+      }
+      if (Number(item.qty || 1) > Number(product.stock || 0)) {
+        return res.status(400).json({ message: `Only ${product.stock} units available for ${product.name}` });
+      }
+    }
+
+    let couponSnapshot = {};
+    let discountPrice = 0;
+
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: String(couponCode).trim().toUpperCase() });
+      const couponError = validateCoupon(coupon, itemsPrice);
+      if (couponError) return res.status(400).json({ message: couponError });
+
+      discountPrice = calculateDiscount(coupon, itemsPrice);
+      couponSnapshot = {
+        code: coupon.code,
+        type: coupon.type,
+        value: coupon.value,
+        discount: discountPrice,
+      };
+    }
+
+    const safeTotalPrice = Math.max(0, Number(itemsPrice || 0) - discountPrice + Number(shippingPrice || 0));
 
     const order = await Order.create({
       user: req.user._id,
@@ -52,9 +58,16 @@ router.post('/', protect, async (req, res) => {
       shippingAddress,
       paymentMethod,
       itemsPrice,
+      discountPrice,
+      coupon: couponSnapshot,
       shippingPrice,
-      totalPrice,
+      totalPrice: couponCode ? safeTotalPrice : totalPrice,
     });
+
+    if (paymentMethod === 'cod') {
+      await deductInventoryForOrder(order);
+      await order.save();
+    }
 
     try {
       const itemsList = items.map(i => `${i.name} x${i.qty} - ₹${i.price}`).join('\n');

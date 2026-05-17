@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { downloadInvoice } from '../../utils/invoice'
 
 import BASE_URL from '../../utils/api'
 
@@ -384,6 +385,10 @@ export default function AdminOrders() {
                       <Download size={13} /> View Bill
                     </a>
                   )}
+
+                  <button onClick={() => downloadInvoice(order, toast)} className="flex items-center gap-1.5 text-xs px-3 py-2 bg-green-500/10 text-green-400 hover:bg-green-500/20 rounded-lg transition-all">
+                    <Download size={13} /> Download Invoice
+                  </button>
                 </div>
               </div>
             )

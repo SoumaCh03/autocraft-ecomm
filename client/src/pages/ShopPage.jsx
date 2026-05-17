@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { SlidersHorizontal, Star, ShoppingCart, X } from 'lucide-react'
+import { SlidersHorizontal, Star, ShoppingCart, X, Heart } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { useCart } from '../context/CartContext'
+import { useWishlist } from '../context/WishlistContext'
 import { Helmet } from 'react-helmet-async'
 
 import BASE_URL from '../utils/api'
@@ -39,6 +40,7 @@ export default function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const { addToCart } = useCart()
+  const { isWishlisted, toggleWishlist } = useWishlist()
 
   const [products, setProducts] = useState([])
   const [loading,  setLoading]  = useState(true)
@@ -317,6 +319,27 @@ export default function ShopPage() {
                         {Math.round((1 - product.price / product.mrp) * 100)}% OFF
                       </div>
                     )}
+                    {Number(product.stock || 0) > 0 && Number(product.stock || 0) <= 5 && (
+                      <div className="absolute bottom-2 left-2 z-20 bg-orange-500/95 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-[0_8px_24px_rgba(249,115,22,0.28)] backdrop-blur-sm">
+                        Only {product.stock} left
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      aria-label={`${isWishlisted(product._id) ? 'Remove' : 'Add'} ${product.name} wishlist`}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        toggleWishlist(product)
+                      }}
+                      className={`absolute top-2 right-2 z-30 p-2 rounded-xl backdrop-blur-sm transition-all ${
+                        isWishlisted(product._id)
+                          ? 'bg-red-500 text-white'
+                          : 'bg-dark-card/85 text-dark-muted hover:text-red-400 hover:bg-red-500/10'
+                      }`}
+                    >
+                      <Heart size={15} className={isWishlisted(product._id) ? 'fill-current' : ''} />
+                    </button>
                   </div>
                 </Link>
 

@@ -3,6 +3,7 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import Order from '../models/orderModel.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { deductInventoryForOrder } from '../utils/orderInventory.js';
 
 const router = express.Router();
 
@@ -106,6 +107,7 @@ router.post('/verify', protect, async (req, res) => {
       status: 'paid',
     };
 
+    await deductInventoryForOrder(order);
     await order.save();
 
     res.json({ message: 'Payment verified successfully', order });

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowRight, Star, Shield, Truck, Headphones } from 'lucide-react'
+import { ArrowRight, Star, Shield, Truck, Headphones, Heart } from 'lucide-react'
 import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 import BASE_URL from '../utils/api'
+import { useWishlist } from '../context/WishlistContext'
 
 const API = BASE_URL
 
@@ -63,6 +64,7 @@ export default function HomePage() {
   const [brandOpen, setBrandOpen] = useState(false)
   const [featuredProducts, setFeaturedProducts] = useState([])
   const [featuredLoading, setFeaturedLoading] = useState(true)
+  const { isWishlisted, toggleWishlist } = useWishlist()
 
   useEffect(() => {
     const loginStatus = searchParams.get('login')
@@ -249,6 +251,25 @@ export default function HomePage() {
                         {product.weeklySold} sold
                       </div>
                     )}
+                    {Number(product.stock || 0) > 0 && Number(product.stock || 0) <= 5 && (
+                      <div className="absolute bottom-3 left-3 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">
+                        Only {product.stock} left
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        toggleWishlist(product)
+                      }}
+                      className={`absolute top-3 ${product.weeklySold > 0 ? 'right-20' : 'right-3'} z-20 p-2 rounded-xl backdrop-blur-sm transition-all ${
+                        isWishlisted(product._id) ? 'bg-red-500 text-white' : 'bg-dark-card/85 text-dark-muted hover:text-red-400'
+                      }`}
+                      aria-label={`${isWishlisted(product._id) ? 'Remove' : 'Add'} ${product.name} wishlist`}
+                    >
+                      <Heart size={14} className={isWishlisted(product._id) ? 'fill-current' : ''} />
+                    </button>
                     <div className="absolute inset-0 bg-gradient-to-t from-dark-card/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
                   <div className="p-4">
