@@ -5,8 +5,15 @@
 @tailwind utilities;
 
 @layer base {
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
 
   /* DARK MODE (default) */
   body {
@@ -15,13 +22,22 @@
   }
 
   /* LIGHT MODE */
-  .light body, body.light {
+  .light body,
+  body.light {
     @apply bg-gray-50 text-gray-900;
   }
 
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { @apply bg-dark-bg; }
-  ::-webkit-scrollbar-thumb { @apply bg-primary-500 rounded-full; }
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-dark-bg;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary-500 rounded-full;
+  }
 }
 
 @layer components {
@@ -29,6 +45,7 @@
   .btn-primary {
     @apply bg-primary-500 hover:bg-primary-600 text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer;
   }
+
   .btn-outline {
     @apply border border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 cursor-pointer;
   }
@@ -72,59 +89,146 @@
   /* Glass — light */
   .light .glass {
     background: rgba(255, 255, 255, 0.85);
-    
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(0, 0, 0, 0.1);
   }
 }
 
-/* Light mode global overrides */
+/* ==========================================
+   LIGHT MODE GLOBAL OVERRIDES
+========================================== */
+
 .light {
   --tw-bg-opacity: 1;
 }
 
-.light .text-dark-text    { color: #111827; }
-.light .text-dark-muted   { color: #6b7280; }
-.light .bg-dark-bg        { background-color: #f9fafb; }
-.light .bg-dark-card      { background-color: #ffffff; }
-.light .border-dark-border { border-color: #e5e7eb; }
-.light .bg-dark-border    { background-color: #f3f4f6; }
+.light .text-dark-text {
+  color: #111827;
+}
+
+.light .text-dark-muted {
+  color: #6b7280;
+}
+
+.light .bg-dark-bg {
+  background-color: #f9fafb;
+}
+
+.light .bg-dark-card {
+  background-color: #ffffff;
+}
+
+.light .border-dark-border {
+  border-color: #e5e7eb;
+}
+
+.light .bg-dark-border {
+  background-color: #f3f4f6;
+}
 
 /* Announcement bar */
-.light .bg-primary-500\/10  { background-color: rgba(59, 107, 255, 0.08); }
+.light .bg-primary-500\/10 {
+  background-color: rgba(59, 107, 255, 0.08);
+}
 
-/* Animations */
+/* ==========================================
+   EXISTING ANIMATIONS
+========================================== */
+
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
+
 @keyframes marquee {
-  0%   { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0%);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
 }
+
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
-.animate-marquee  { animation: marquee 30s linear infinite; }
-.animate-float    { animation: float 6s ease-in-out infinite; }
-.animate-slide-up { animation: slideUp 0.5s ease-out; }
-.animate-fade-in  { animation: fadeIn 0.6s ease-out; }
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
 
-/* Background grid */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* ==========================================
+   PREMIUM SKELETON SHIMMER
+========================================== */
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.8s linear infinite;
+  will-change: transform;
+}
+
+/* ==========================================
+   BACKGROUND GRID
+========================================== */
+
 .bg-grid-pattern {
   background-image:
-    linear-gradient(rgba(59,107,255,0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59,107,255,0.05) 1px, transparent 1px);
+    linear-gradient(rgba(59, 107, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(
+      90deg,
+      rgba(59, 107, 255, 0.05) 1px,
+      transparent 1px
+    );
+
   background-size: 40px 40px;
 }
-
 
 /* =========================
    CUSTOM DESKTOP CURSOR

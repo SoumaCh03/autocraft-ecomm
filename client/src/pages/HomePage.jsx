@@ -198,8 +198,8 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-4 pb-20">
         <div className="flex items-center justify-between mb-10 gap-4">
           <div>
-            <h2 className="section-title">Featured Products</h2>
-            <p className="text-dark-muted mt-1">Best sellers this week</p>
+            <h2 className="section-title">Trending Products</h2>
+            <p className="text-dark-muted mt-1">Trending & recommended picks</p>
           </div>
           <Link to="/shop" className="btn-outline text-sm py-2 flex items-center gap-2">
             View All <ArrowRight size={15} />
@@ -221,8 +221,12 @@ export default function HomePage() {
           </div>
         ) : featuredProducts.length === 0 ? (
           <div className="card p-10 text-center">
-            <p className="text-dark-text font-semibold">No best sellers yet</p>
-            <p className="text-dark-muted text-sm mt-1">Products will appear here automatically after weekly sales begin.</p>
+            <p className="text-dark-text font-semibold">
+              No featured products yet
+            </p>
+            <p className="text-dark-muted text-sm mt-1">
+              Products will appear here automatically after weekly sales begin.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">

@@ -157,10 +157,10 @@ export default function Footer() {
                 />
 
                 <a
-                  href="mailto:hello@autocraft.in"
+                  href="mailto:autocraftcob@gmail.com"
                   className="text-sm text-dark-muted hover:text-primary-500 transition-colors"
                 >
-                  hello@autocraft.in
+                  autocraftcob@gmail.com
                 </a>
               </li>
 

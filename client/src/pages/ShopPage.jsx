@@ -224,13 +224,46 @@ export default function ShopPage() {
 
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="card overflow-hidden animate-pulse">
-                <div className="aspect-square bg-dark-border" />
-                <div className="p-4 space-y-2">
-                  <div className="h-3 bg-dark-border rounded w-1/3" />
-                  <div className="h-4 bg-dark-border rounded w-3/4" />
-                  <div className="h-4 bg-dark-border rounded w-1/2" />
+            {[...Array(12)].map((_, i) => (
+              <div
+                key={i}
+                className="group relative overflow-hidden rounded-3xl border border-dark-border/80 bg-dark-card/80 shadow-[0_18px_60px_rgba(0,0,0,0.28)]"
+              >
+                <div className="absolute -inset-px rounded-3xl bg-gradient-to-br from-primary-500/20 via-white/5 to-transparent opacity-60" />
+                <div className="absolute inset-0 overflow-hidden rounded-3xl">
+                  <div className="absolute inset-y-0 -left-full w-2/3 bg-gradient-to-r from-transparent via-white/12 to-transparent animate-shimmer" />
+                </div>
+
+                <div className="relative">
+                  <div className="aspect-square bg-gradient-to-br from-dark-border/90 via-dark-card to-dark-card relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_20%,rgba(255,255,255,0.12),transparent_32%)]" />
+                    <div className="absolute top-3 left-3 h-5 w-16 rounded-full bg-dark-border/80 shadow-[0_0_24px_rgba(255,255,255,0.04)]" />
+                    <div className="absolute bottom-4 left-4 right-4 h-24 rounded-3xl bg-gradient-to-t from-primary-500/10 to-transparent blur-xl" />
+                  </div>
+
+                  <div className="p-4">
+                    <div className="h-3 w-20 rounded-full bg-dark-border/80 mb-3" />
+
+                    <div className="space-y-2 mb-3">
+                      <div className="h-4 rounded-full bg-dark-border/80 w-full" />
+                      <div className="h-4 rounded-full bg-dark-border/60 w-3/4" />
+                    </div>
+
+                    <div className="flex items-center gap-1.5 mb-4">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <div key={star} className="h-3 w-3 rounded-full bg-dark-border/70" />
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-2">
+                        <div className="h-5 w-20 rounded-full bg-dark-border/80" />
+                        <div className="h-3 w-14 rounded-full bg-dark-border/50" />
+                      </div>
+
+                      <div className="w-11 h-11 rounded-2xl bg-primary-500/20 border border-primary-500/25 shadow-[0_0_28px_rgba(59,130,246,0.12)]" />
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -255,44 +288,49 @@ export default function ShopPage() {
                 key={product._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -6 }}
                 transition={{ duration: 0.3, delay: i * 0.05 }}
-                className="card overflow-hidden group hover:border-primary-500/30 transition-all duration-300"
+                className="card relative overflow-hidden group border-dark-border/80 bg-dark-card/85 shadow-[0_16px_46px_rgba(0,0,0,0.24)] transition-all duration-300 hover:border-primary-500/35 hover:shadow-[0_24px_70px_rgba(0,0,0,0.36),0_0_34px_rgba(59,130,246,0.12)]"
               >
+                <div className="pointer-events-none absolute -inset-px rounded-[inherit] bg-gradient-to-br from-primary-500/0 via-white/0 to-primary-500/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:from-primary-500/16 group-hover:via-white/5" />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.10),transparent_38%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+
                 <Link to={`/product/${product._id}`}>
                   <div className="aspect-square bg-dark-border/50 relative overflow-hidden">
+                    <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-black/28 via-transparent to-white/5 opacity-70 transition-opacity duration-500 group-hover:opacity-95" />
                     {product.images?.[0] ? (
                       <img
                         src={product.images[0]}
                         alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-dark-muted/20 font-display text-4xl font-bold">AC</div>
                     )}
                     {(product.isOutOfStock || Number(product.stock || 0) <= 0) && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                        <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">OUT OF STOCK</span>
+                      <div className="absolute inset-0 z-20 bg-black/60 flex items-center justify-center">
+                        <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">OUT OF STOCK</span>
                       </div>
                     )}
                     {product.mrp > product.price && (
-                      <div className="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      <div className="absolute top-2 left-2 z-20 bg-green-500/95 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-[0_8px_24px_rgba(34,197,94,0.28)] backdrop-blur-sm">
                         {Math.round((1 - product.price / product.mrp) * 100)}% OFF
                       </div>
                     )}
                   </div>
                 </Link>
 
-                <div className="p-4">
+                <div className="relative p-4">
                   <p className="text-xs text-primary-500 mb-1 capitalize">{product.category}</p>
 
                   <Link to={`/product/${product._id}`}>
-                    <h3 className="text-sm font-medium text-dark-text line-clamp-2 group-hover:text-primary-500 transition-colors">
+                    <h3 className="text-sm font-medium text-dark-text line-clamp-2 group-hover:text-primary-500 transition-colors duration-300">
                       {product.name}
                     </h3>
                   </Link>
 
                   <div className="flex items-center gap-1 mt-1">
-                    <Star size={14} className="text-yellow-400 fill-yellow-400" />
+                    <Star size={14} className="text-yellow-400 fill-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.25)]" />
                     <span className="text-xs text-dark-muted">
                       {product.rating || 4.5}
                     </span>
@@ -315,10 +353,10 @@ export default function ShopPage() {
                       aria-label={`Add ${product.name} to cart`}
                       onClick={() => handleAddToCart(product)}
                       disabled={product.isOutOfStock || Number(product.stock || 0) <= 0}
-                      className={`p-2 rounded-lg transition-colors ${
+                      className={`p-2 rounded-xl transition-all duration-300 ${
                         product.isOutOfStock || Number(product.stock || 0) <= 0
                           ? 'bg-dark-border text-dark-muted cursor-not-allowed'
-                          : 'bg-primary-500 text-white hover:bg-primary-600'
+                          : 'bg-primary-500 text-white hover:bg-primary-600 hover:shadow-[0_0_26px_rgba(59,130,246,0.35)] active:scale-95'
                       }`}
                     >
                       <ShoppingCart size={16} />

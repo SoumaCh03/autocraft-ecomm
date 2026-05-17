@@ -8,6 +8,7 @@ import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { Helmet } from 'react-helmet-async'
 import BASE_URL from '../utils/api'
+import Skeleton from '../components/ui/Skeleton'
 
 const API = BASE_URL
 
@@ -96,8 +97,91 @@ export default function ProductPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
+      <div className="mb-8">
+        <Skeleton className="h-5 w-24 rounded-lg" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        {/* Left Image Section */}
+        <div>
+          <Skeleton className="aspect-square rounded-3xl border border-dark-border" />
+
+          <div className="flex gap-3 mt-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton
+                key={i}
+                className="w-16 h-16 rounded-xl border border-dark-border"
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Right Content Section */}
+        <div>
+          <Skeleton className="h-4 w-28 mb-4" />
+
+          <Skeleton className="h-12 w-4/5 mb-4 rounded-xl" />
+
+          <div className="flex gap-2 mb-6">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="w-5 h-5 rounded-full" />
+            ))}
+            <Skeleton className="h-5 w-24 ml-2" />
+          </div>
+
+          <div className="flex items-center gap-4 mb-6">
+            <Skeleton className="h-12 w-36 rounded-xl" />
+            <Skeleton className="h-8 w-24 rounded-xl" />
+          </div>
+
+          <div className="space-y-3 mb-8">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-11/12" />
+            <Skeleton className="h-4 w-10/12" />
+            <Skeleton className="h-4 w-8/12" />
+          </div>
+
+          <Skeleton className="h-24 rounded-2xl mb-6" />
+
+          <div className="flex items-center gap-2 mb-6">
+            <Skeleton className="w-3 h-3 rounded-full" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+
+          <div className="flex items-center gap-3 mb-6">
+            <Skeleton className="h-12 w-36 rounded-xl" />
+          </div>
+
+          <div className="flex gap-3 mb-8">
+            <Skeleton className="h-14 flex-1 rounded-2xl" />
+            <Skeleton className="h-14 flex-1 rounded-2xl" />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton
+                key={i}
+                className="h-28 rounded-2xl border border-dark-border"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Reviews Skeleton */}
+      <div className="mt-16">
+        <Skeleton className="h-10 w-64 mb-8 rounded-xl" />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2].map((i) => (
+            <Skeleton
+              key={i}
+              className="h-40 rounded-2xl border border-dark-border"
+            />
+          ))}
+        </div>
+      </div>
     </div>
   )
 

@@ -73,7 +73,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET featured products by real weekly sales
+// GET featured products by weekly sales first, then admin-curated featured fallback
 router.get('/featured', async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 8, 12);
@@ -121,8 +121,9 @@ router.get('/featured', async (req, res) => {
       const fallbackProducts = await Product.find({
         _id: { $nin: soldIds },
         stock: { $gt: 0 },
+        isFeatured: true,
       })
-        .sort({ soldCount: -1, rating: -1, createdAt: -1 })
+        .sort({ createdAt: -1 })
         .limit(limit - products.length);
 
       products = [
