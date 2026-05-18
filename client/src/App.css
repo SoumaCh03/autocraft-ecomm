@@ -628,7 +628,6 @@
       #ff3131,
       #ff8a8a
     );
-
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 
@@ -663,7 +662,7 @@
 
   border:
     1px solid rgba(255,255,255,0.08);
-
+  -webkit-backdrop-filter: blur(22px);
   backdrop-filter: blur(22px);
 
   box-shadow:
@@ -753,7 +752,7 @@
 
   border:
     1px solid rgba(255,255,255,0.12);
-
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
 
