@@ -14,7 +14,7 @@ export const downloadInvoice = (order, toast) => {
   doc.text('AUTOCRAFT', 14, 19)
   doc.setFontSize(9)
   doc.setTextColor(190, 199, 218)
-  doc.text('Premium Car Accessories | GST Style Tax Invoice', 14, 27)
+  doc.text('Premium Car Accessories | GST Invoice', 14, 27)
   doc.text('Old Military Hospital Road, Gowala Patti, Cooch Behar, WB 736101', 14, 33)
 
   doc.setTextColor(59, 107, 255)
@@ -90,7 +90,7 @@ export const downloadInvoice = (order, toast) => {
   const finalY = doc.lastAutoTable.finalY + 12
   doc.setTextColor(100)
   doc.setFontSize(8)
-  doc.text('This is a computer generated GST-style invoice for AUTOCRAFT ecommerce order records.', 14, finalY)
+  doc.text('This is a computer generated invoice for AUTOCRAFT ecommerce orders.', 14, finalY)
   doc.text('Thank you for shopping with AUTOCRAFT.', 14, finalY + 5)
 
   doc.save(`AUTOCRAFT-Invoice-${invoiceNumber}.pdf`)
