@@ -23,6 +23,41 @@ const salesHistorySchema = new mongoose.Schema({
   soldAt: { type: Date, default: Date.now },
 }, { _id: false });
 
+const variantSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  sku: {
+    type: String,
+    trim: true,
+  },
+  stock: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0,
+  },
+  price: {
+    type: Number,
+  },
+  mrp: {
+    type: Number,
+  },
+  discount: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100,
+  },
+  images: [{ type: String }],
+  available: {
+    type: Boolean,
+    default: true,
+  },
+}, { _id: true });
+
 const productSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -64,6 +99,11 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  variants: [variantSchema],
+  hasVariants: {
+    type: Boolean,
+    default: false,
+  },
   soldCount: {
     type: Number,
     default: 0,
@@ -80,6 +120,7 @@ const productSchema = new mongoose.Schema({
 productSchema.pre('save', function () {
   this.stock = Math.max(0, Number(this.stock || 0));
   this.isOutOfStock = this.stock === 0;
+  this.hasVariants = this.variants && this.variants.length > 0;
 });
 
 productSchema.pre('findOneAndUpdate', function (next) {

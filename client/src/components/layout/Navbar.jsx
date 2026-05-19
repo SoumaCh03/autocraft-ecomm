@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useCart } from '../../context/CartContext'
 import { useWishlist } from '../../context/WishlistContext'
 import { motion, AnimatePresence } from 'framer-motion'
+import NotificationBell from '../ui/NotificationBell'
 import logo from '../../assets/logo.png'
 
 const CAR_BRANDS = {
@@ -216,6 +217,8 @@ export default function Navbar() {
                 {isDark ? <Sun size={18} /> : <Moon size={18} />}
               </button>
 
+              <NotificationBell />
+
               <Link
                 to="/wishlist"
                 aria-label={`View wishlist${wishlist.length > 0 ? `, ${wishlist.length} saved` : ''}`}
@@ -336,10 +339,27 @@ export default function Navbar() {
                   {brand}
                 </Link>
               ))}
-              {!user && (
+              <hr className="border-dark-border" />
+              {user ? (
                 <>
+                  <Link to="/profile" onClick={() => setMobileOpen(false)} className="block py-2 text-dark-text hover:text-primary-500 transition-colors">My Profile</Link>
+                  <Link to="/my-orders" onClick={() => setMobileOpen(false)} className="block py-2 text-dark-text hover:text-primary-500 transition-colors">My Orders</Link>
+                  <Link to="/wishlist" onClick={() => setMobileOpen(false)} className="block py-2 text-dark-text hover:text-primary-500 transition-colors">Wishlist</Link>
+                  {user.role === 'admin' && (
+                    <Link to="/admin" onClick={() => setMobileOpen(false)} className="block py-2 text-accent-400 hover:text-accent-300 transition-colors">Admin Panel</Link>
+                  )}
                   <hr className="border-dark-border" />
-                  <Link to="/login"    onClick={() => setMobileOpen(false)} className="block btn-primary text-center text-sm">Login</Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full text-left py-2 text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" onClick={() => setMobileOpen(false)} className="block btn-primary text-center text-sm">Login</Link>
                   <Link to="/register" onClick={() => setMobileOpen(false)} className="block btn-outline text-center text-sm mt-2">Register</Link>
                 </>
               )}

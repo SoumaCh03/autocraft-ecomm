@@ -3,6 +3,8 @@ import Product from '../models/productModel.js';
 import Order from '../models/orderModel.js';
 import sendEmail from '../utils/sendEmail.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { notifyAllAdmins } from '../utils/createNotification.js';
+import variantRoutes from './variantRoutes.js';
 
 const router = express.Router();
 
@@ -41,22 +43,41 @@ const notifyBackInStockSubscribers = async (product) => {
 // GET all products with filters + sorting
 router.get('/', async (req, res) => {
   try {
-    const { category, brand, model, search, sort, page = 1, limit = 12 } = req.query;
+    const { category, brand, model, search, sort, page = 1, limit = 12, priceMin, priceMax, ratingMin, inStock } = req.query;
     const query = {};
 
     if (category) query.category = category;
-    if (brand)    query.carBrands = { $in: [brand] };
-    if (model)    query.carModels = { $in: [model] };
-    if (search)   query.name = { $regex: search, $options: 'i' };
+    if (brand) query.carBrands = { $in: [brand] };
+    if (model) query.carModels = { $in: [model] };
+    if (search) query.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } },
+      { category: { $regex: search, $options: 'i' } },
+      { carBrands: { $in: [new RegExp(search, 'i')] } },
+    ];
+
+    if (priceMin || priceMax) {
+      query.price = {};
+      if (priceMin) query.price.$gte = Number(priceMin);
+      if (priceMax) query.price.$lte = Number(priceMax);
+    }
+
+    if (ratingMin) {
+      query.rating = { $gte: Number(ratingMin) };
+    }
+
+    if (inStock === 'true') {
+      query.stock = { $gt: 0 };
+    }
 
     let sortOption = { createdAt: -1 };
-    if (sort === 'price-asc')  sortOption = { price: 1 };
+    if (sort === 'price-asc') sortOption = { price: 1 };
     if (sort === 'price-desc') sortOption = { price: -1 };
-    if (sort === 'rating')     sortOption = { rating: -1 };
-    if (sort === 'relevance')  sortOption = { numReviews: -1 };
+    if (sort === 'rating') sortOption = { rating: -1 };
+    if (sort === 'relevance') sortOption = { numReviews: -1 };
 
-    const skip     = (Number(page) - 1) * Number(limit);
-    const total    = await Product.countDocuments(query);
+    const skip = (Number(page) - 1) * Number(limit);
+    const total = await Product.countDocuments(query);
     const products = await Product.find(query)
       .sort(sortOption)
       .skip(skip)
@@ -65,7 +86,7 @@ router.get('/', async (req, res) => {
     res.json({
       products,
       total,
-      page:  Number(page),
+      page: Number(page),
       pages: Math.ceil(total / Number(limit)),
     });
   } catch (error) {
@@ -176,6 +197,22 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 
     if (previousProduct.stock <= 0 && product.stock > 0) {
       await notifyBackInStockSubscribers(product);
+      await notifyAllAdmins({
+        type: 'back_in_stock',
+        title: `${product.name} Back in Stock`,
+        message: `${product.name} is back in stock with ${product.stock} units`,
+        relatedData: { productId: product._id },
+      });
+    }
+
+    const LOW_STOCK_THRESHOLD = 5;
+    if (product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD && previousProduct.stock > LOW_STOCK_THRESHOLD) {
+      await notifyAllAdmins({
+        type: 'low_stock',
+        title: `Low Stock Alert: ${product.name}`,
+        message: `${product.name} stock is low (${product.stock} left)`,
+        relatedData: { productId: product._id },
+      });
     }
 
     res.json({ product });
@@ -285,5 +322,7 @@ router.post('/:id/review', protect, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+router.use('/:productId/variants', variantRoutes);
 
 export default router;

@@ -1,15 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Shield, Truck, Package, Heart, Star, Mail, BadgeCheck, ShoppingCart } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { ShoppingCart, Star, ArrowLeft, Shield, Truck, Package, Mail, Heart, BadgeCheck } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { useWishlist } from '../context/WishlistContext'
-import { Helmet } from 'react-helmet-async'
 import BASE_URL from '../utils/api'
 import Skeleton from '../components/ui/Skeleton'
+import ProductSEO from '../components/product/ProductSEO'
+import ProductGallery from '../components/product/ProductGallery'
+import ProductInfo from '../components/product/ProductInfo'
+import ProductPrice from '../components/product/ProductPrice'
+import ProductVariants from '../components/product/ProductVariants'
+import ProductStockStatus from '../components/product/ProductStockStatus'
+import ProductActions from '../components/product/ProductActions'
+import ProductReviews from '../components/product/ProductReviews'
+import ReviewForm from '../components/product/ReviewForm'
 
 const API = BASE_URL
 
@@ -24,6 +32,7 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true)
   const [qty, setQty] = useState(1)
   const [imgIdx, setImgIdx] = useState(0)
+  const [selectedVariant, setSelectedVariant] = useState(null)
   const [review, setReview] = useState({ rating: 5, comment: '' })
   const [submitting, setSubmitting] = useState(false)
   const [notifyEmail, setNotifyEmail] = useState('')
@@ -35,6 +44,8 @@ export default function ProductPage() {
         const { data } = await axios.get(`${API}/products/${id}`)
         setProduct(data.product)
         setQty(1)
+        setSelectedVariant(null)
+        setImgIdx(0)
       } catch {
         toast.error('Product not found')
         navigate('/shop')
@@ -49,18 +60,32 @@ export default function ProductPage() {
     if (user?.email) setNotifyEmail(user.email)
   }, [user])
 
-  const isOutOfStock = product?.isOutOfStock || Number(product?.stock || 0) <= 0
+  const displayProduct = selectedVariant ? {
+    ...product,
+    price: selectedVariant.price || product.price,
+    mrp: selectedVariant.mrp || product.mrp,
+    stock: selectedVariant.stock,
+    images: selectedVariant.images?.length > 0 ? selectedVariant.images : product.images,
+  } : product
+
+  const isOutOfStock = displayProduct?.isOutOfStock || Number(displayProduct?.stock || 0) <= 0
+
+  const handleVariantSelect = (variant) => {
+    setSelectedVariant(variant)
+    setImgIdx(0)
+    setQty(1)
+  }
 
   const handleAddToCart = () => {
     if (isOutOfStock) return toast.error('Out of stock')
-    const added = addToCart(product, qty)
+    const added = addToCart(product, qty, selectedVariant)
     if (!added) return toast.error('Out of stock')
     toast.success(`${qty} item(s) added to cart!`)
   }
 
   const handleBuyNow = () => {
     if (isOutOfStock) return toast.error('Out of stock')
-    const added = addToCart(product, qty)
+    const added = addToCart(product, qty, selectedVariant)
     if (!added) return toast.error('Out of stock')
     navigate('/cart')
   }
@@ -189,67 +214,14 @@ export default function ProductPage() {
 
   if (!product) return null
 
-  const discount = product.mrp > product.price
-    ? Math.round((1 - product.price / product.mrp) * 100)
+  const discount = displayProduct.mrp > displayProduct.price
+    ? Math.round((1 - displayProduct.price / displayProduct.mrp) * 100)
     : 0
-  const lowStock = !isOutOfStock && Number(product.stock || 0) <= 5
-  const productUrl = `${window.location.origin}/product/${product._id}`
-  const productImage = product.images?.[0] || `${window.location.origin}/logo.png`
-  const seoDescription = product.description?.slice(0, 155) || `${product.name} by AUTOCRAFT`
-  const schema = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    image: product.images || [],
-    description: product.description,
-    sku: product._id,
-    brand: { '@type': 'Brand', name: 'AUTOCRAFT' },
-    category: product.category,
-    offers: {
-      '@type': 'Offer',
-      url: productUrl,
-      priceCurrency: 'INR',
-      price: product.price,
-      availability: isOutOfStock ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
-      itemCondition: 'https://schema.org/NewCondition',
-    },
-    aggregateRating: product.numReviews > 0 ? {
-      '@type': 'AggregateRating',
-      ratingValue: product.rating,
-      reviewCount: product.numReviews,
-    } : undefined,
-  }
-  const breadcrumbSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: window.location.origin },
-      { '@type': 'ListItem', position: 2, name: 'Shop', item: `${window.location.origin}/shop` },
-      { '@type': 'ListItem', position: 3, name: product.name, item: productUrl },
-    ],
-  }
+  const lowStock = !isOutOfStock && Number(displayProduct.stock || 0) <= 5
 
   return (
     <>
-      <Helmet>
-        <title>{product.name} - AUTOCRAFT</title>
-        <meta name="description" content={seoDescription} />
-        <meta name="keywords" content={[product.name, product.category, ...(product.tags || []), ...(product.carBrands || []), 'AUTOCRAFT', 'car accessories india'].join(', ')} />
-        <meta property="og:type" content="product" />
-        <meta property="og:title" content={`${product.name} - AUTOCRAFT`} />
-        <meta property="og:description" content={seoDescription} />
-        <meta property="og:image" content={productImage} />
-        <meta property="og:url" content={productUrl} />
-        <meta property="product:price:amount" content={String(product.price)} />
-        <meta property="product:price:currency" content="INR" />
-        <meta property="product:availability" content={isOutOfStock ? 'out of stock' : 'in stock'} />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${product.name} - AUTOCRAFT`} />
-        <meta name="twitter:description" content={seoDescription} />
-        <meta name="twitter:image" content={productImage} />
-        <script type="application/ld+json">{JSON.stringify(schema)}</script>
-        <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
-      </Helmet>
+      <ProductSEO product={product} displayProduct={displayProduct} isOutOfStock={isOutOfStock} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-dark-muted hover:text-dark-text text-sm mb-8 transition-colors">
@@ -259,8 +231,8 @@ export default function ProductPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
             <div className="aspect-square rounded-2xl overflow-hidden bg-dark-card border border-dark-border mb-4 relative">
-              {product.images?.[imgIdx] ? (
-                <img src={product.images[imgIdx]} alt={product.name} className={`w-full h-full object-cover ${isOutOfStock ? 'opacity-60 grayscale' : ''}`} />
+              {displayProduct.images?.[imgIdx] ? (
+                <img src={displayProduct.images[imgIdx]} alt={product.name} className={`w-full h-full object-cover ${isOutOfStock ? 'opacity-60 grayscale' : ''}`} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-dark-muted/20 font-display text-6xl font-bold">AC</div>
               )}
@@ -272,9 +244,9 @@ export default function ProductPage() {
               )}
             </div>
 
-            {product.images?.length > 1 && (
+            {displayProduct.images?.length > 1 && (
               <div className="flex gap-3">
-                {product.images.map((img, i) => (
+                {displayProduct.images.map((img, i) => (
                   <button key={i} onClick={() => setImgIdx(i)} className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${imgIdx === i ? 'border-primary-500' : 'border-dark-border'}`}>
                     <img src={img} alt="" className="w-full h-full object-cover" />
                   </button>
@@ -313,14 +285,37 @@ export default function ProductPage() {
             )}
 
             <div className="flex items-baseline gap-3 mb-6">
-              <span className="font-display text-4xl font-bold text-dark-text">₹{product.price.toLocaleString()}</span>
-              {product.mrp > product.price && (
+              <span className="font-display text-4xl font-bold text-dark-text">₹{displayProduct.price.toLocaleString()}</span>
+              {displayProduct.mrp > displayProduct.price && (
                 <>
-                  <span className="text-xl text-dark-muted line-through">₹{product.mrp.toLocaleString()}</span>
+                  <span className="text-xl text-dark-muted line-through">₹{displayProduct.mrp.toLocaleString()}</span>
                   <span className="text-sm bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full font-medium">{discount}% OFF</span>
                 </>
               )}
             </div>
+
+            {product.hasVariants && product.variants?.length > 0 && (
+              <div className="mb-6 p-4 bg-primary-500/5 border border-primary-500/20 rounded-xl">
+                <p className="text-xs text-primary-500 font-medium uppercase tracking-wider mb-3">Select Variant</p>
+                <div className="flex flex-wrap gap-2">
+                  {product.variants.map((variant) => (
+                    <button
+                      key={variant._id}
+                      type="button"
+                      onClick={() => handleVariantSelect(variant)}
+                      className={`px-4 py-2 text-sm rounded-lg border-2 transition-all ${
+                        selectedVariant?._id === variant._id
+                          ? 'border-primary-500 bg-primary-500/20 text-primary-400'
+                          : 'border-dark-border text-dark-muted hover:border-primary-500/50'
+                      }`}
+                    >
+                      <span className="font-medium">{variant.name}</span>
+                      {variant.stock <= 0 && <span className="text-xs ml-1 text-red-400">(Out)</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <p className="text-dark-muted leading-relaxed mb-6">{product.description}</p>
 
@@ -337,7 +332,7 @@ export default function ProductPage() {
             <div className="flex items-center gap-2 mb-6">
               <div className={`w-2 h-2 rounded-full ${isOutOfStock ? 'bg-red-400' : 'bg-green-400'}`} />
               <span className={`text-sm font-medium ${isOutOfStock ? 'text-red-400' : 'text-green-400'}`}>
-                {isOutOfStock ? 'Out of Stock' : lowStock ? `Only ${product.stock} left` : `In Stock (${product.stock} left)`}
+                {isOutOfStock ? 'Out of Stock' : lowStock ? `Only ${displayProduct.stock} left` : `In Stock (${displayProduct.stock} left)`}
               </span>
             </div>
 
@@ -348,7 +343,7 @@ export default function ProductPage() {
                   <div className="flex items-center gap-2 bg-dark-card border border-dark-border rounded-xl px-3 py-2">
                     <button onClick={() => setQty(q => Math.max(1, q - 1))} className="text-dark-muted hover:text-dark-text w-6 text-center font-bold">−</button>
                     <span className="text-dark-text font-medium w-8 text-center">{qty}</span>
-                    <button onClick={() => setQty(q => Math.min(product.stock, q + 1))} className="text-dark-muted hover:text-dark-text w-6 text-center font-bold">+</button>
+                    <button onClick={() => setQty(q => Math.min(displayProduct.stock, q + 1))} className="text-dark-muted hover:text-dark-text w-6 text-center font-bold">+</button>
                   </div>
                 </div>
 

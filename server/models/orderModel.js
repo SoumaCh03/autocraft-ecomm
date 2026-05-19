@@ -38,6 +38,12 @@ const orderSchema = new mongoose.Schema({
     image:   { type: String },
     price:   { type: Number, required: true },
     qty:     { type: Number, required: true, default: 1 },
+    variant: {
+      id:    mongoose.Schema.Types.ObjectId,
+      name:  String,
+      sku:   String,
+      price: Number,
+    },
   }],
   shippingAddress: {
     name:    { type: String, required: true },

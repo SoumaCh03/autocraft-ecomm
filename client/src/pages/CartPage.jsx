@@ -106,6 +106,9 @@ export default function CartPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-dark-text text-sm line-clamp-2">{item.name}</p>
+                  {item.selectedVariant && (
+                    <p className="text-xs text-primary-400 mt-0.5">Variant: {item.selectedVariant.name}</p>
+                  )}
                   <p className="text-xs text-primary-500 capitalize mt-0.5">{item.category}</p>
                   <p className="font-bold text-dark-text mt-1">Rs.{Number(item.price || 0).toLocaleString('en-IN')}</p>
                   {Number(item.stock || 0) > 0 && Number(item.stock || 0) <= 5 && (
@@ -113,15 +116,15 @@ export default function CartPage() {
                   )}
                 </div>
                 <div className="flex flex-col items-end justify-between">
-                  <button onClick={() => removeFromCart(item._id)} className="text-dark-muted hover:text-red-400 transition-colors" aria-label={`Remove ${item.name}`}>
+                  <button onClick={() => removeFromCart(item._id, item.selectedVariant?._id)} className="text-dark-muted hover:text-red-400 transition-colors" aria-label={`Remove ${item.name}`}>
                     <Trash2 size={15} />
                   </button>
                   <div className="flex items-center gap-2 bg-dark-border/50 rounded-xl px-2 py-1">
-                    <button onClick={() => updateQty(item._id, item.qty - 1)} className="text-dark-muted hover:text-dark-text" aria-label="Decrease quantity">
+                    <button onClick={() => updateQty(item._id, item.qty - 1, item.selectedVariant?._id)} className="text-dark-muted hover:text-dark-text" aria-label="Decrease quantity">
                       <Minus size={13} />
                     </button>
                     <span className="text-dark-text text-sm font-medium w-6 text-center">{item.qty}</span>
-                    <button onClick={() => updateQty(item._id, item.qty + 1)} className="text-dark-muted hover:text-dark-text" aria-label="Increase quantity">
+                    <button onClick={() => updateQty(item._id, item.qty + 1, item.selectedVariant?._id)} className="text-dark-muted hover:text-dark-text" aria-label="Increase quantity">
                       <Plus size={13} />
                     </button>
                   </div>

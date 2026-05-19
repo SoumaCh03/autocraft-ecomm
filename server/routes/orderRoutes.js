@@ -7,6 +7,7 @@ import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import sendEmail from '../utils/sendEmail.js';
 import { deductInventoryForOrder } from '../utils/orderInventory.js';
 import { calculateDiscount, validateCoupon } from './couponRoutes.js';
+import { createNotification, notifyAllAdmins } from '../utils/createNotification.js';
 
 const router = express.Router();
 
@@ -68,6 +69,22 @@ router.post('/', protect, async (req, res) => {
       await deductInventoryForOrder(order);
       await order.save();
     }
+
+    await notifyAllAdmins({
+      type: 'new_order',
+      title: `New Order #${order._id}`,
+      message: `New order placed by ${shippingAddress.name}`,
+      relatedData: { orderId: order._id },
+    });
+
+    await createNotification({
+      userId: req.user._id,
+      type: 'new_order',
+      title: 'Order Placed',
+      message: `Your order #${order._id} has been placed successfully`,
+      role: 'customer',
+      relatedData: { orderId: order._id },
+    });
 
     try {
       const itemsList = items.map(i => `${i.name} x${i.qty} - ₹${i.price}`).join('\n');
@@ -159,6 +176,13 @@ router.post('/:id/return', protect, async (req, res) => {
     };
 
     await order.save();
+
+    await notifyAllAdmins({
+      type: 'return_request',
+      title: `Return Request #${order._id}`,
+      message: `Return requested for order #${order._id}`,
+      relatedData: { orderId: order._id },
+    });
 
     try {
       await sendEmail({
@@ -358,6 +382,28 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
     }
 
     await order.save();
+
+    if (requestedStatus === 'shipped') {
+      await createNotification({
+        userId: order.user,
+        type: 'order_shipped',
+        title: 'Order Shipped',
+        message: `Your order #${order._id} has been shipped`,
+        role: 'customer',
+        relatedData: { orderId: order._id },
+      });
+    }
+
+    if (requestedStatus === 'delivered') {
+      await createNotification({
+        userId: order.user,
+        type: 'order_delivered',
+        title: 'Order Delivered',
+        message: `Your order #${order._id} has been delivered`,
+        role: 'customer',
+        relatedData: { orderId: order._id },
+      });
+    }
 
     try {
       const customerUser = await User.findById(order.user);
