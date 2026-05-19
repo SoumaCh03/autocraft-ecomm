@@ -1,119 +1,309 @@
-# AUTOCRAFT Components Architecture
+# AUTOCRAFT Frontend Components Architecture
 
-This folder contains reusable components used across the AUTOCRAFT frontend.
+This folder contains reusable frontend components used across the AUTOCRAFT ecommerce platform.
 
-## Folder Structure
-
-### /admin
-Admin-specific components.
-
-Purpose:
-- Dashboard widgets
-- Analytics UI
-- Order management
-- Product management
-- User management
-- Inventory controls
-- Notifications system
-
-Rules:
-- Keep admin logic modular
-- Avoid duplicate UI patterns
+The goal of this architecture is to maintain a **modular, scalable, premium-grade React application** while keeping UI reusable, maintainable, and performance optimized.
 
 ---
 
-### /layout
-Global layout components shared across pages.
+# Folder Structure
 
-Examples:
-- Navbar
-- Footer
-- Sidebar
-- Breadcrumbs
-- Layout wrappers
-
-Rules:
-- Must remain reusable
-- Should not contain page-specific logic
+```bash
+components/
+│── admin/
+│── layout/
+│── product/
+│── shop/
+│── ui/
+└── readme.md
+```
 
 ---
 
-### /product
-Product-related reusable components.
+# Components Overview
 
-Examples:
-- ProductCard
-- ProductGrid
-- ProductGallery
-- ProductReviews
-- ProductVariantSelector
-- WishlistButton
+## 1. `/admin`
 
-Rules:
-- Product UI should be reusable everywhere
-- Optimize rendering performance
+Contains all admin dashboard and management-related components.
 
----
+### Purpose
+This folder powers the backend-facing ecommerce administration system.
 
-### /shop
-Shopping flow components.
+### Current Components
 
-Examples:
-- Filters
-- Sorting
-- Cart UI
-- Checkout components
-- Coupon UI
-- Shipping UI
+| Component | Purpose |
+|-----------|----------|
+| `OrderActions.jsx` | Handles admin order actions (ship, cancel, update, etc.) |
+| `OrderCard.jsx` | Displays order summary card |
+| `OrderHeader.jsx` | Order page heading and controls |
+| `OrderList.jsx` | Renders list of customer orders |
+| `OrderReturn.jsx` | Return request management |
+| `OrderTracking.jsx` | Shipment tracking system |
+| `ProductForm.jsx` | Create/Edit product form |
+| `ProductHeader.jsx` | Product management header |
+| `ProductList.jsx` | Displays admin product list |
+| `ProductTable.jsx` | Product table UI |
 
-Rules:
-- Keep business logic separated
-- Preserve responsive UX
+### Rules
+- Keep business logic modular.
+- Avoid duplicate admin UI.
+- Prefer reusable admin widgets.
+- Large admin features should be split into smaller components.
 
----
-
-### /ui
-Atomic reusable UI components.
-
-Examples:
-- Buttons
-- Inputs
-- Modals
-- Loaders
-- Toasts
-- Skeletons
-- Dialogs
-
-Rules:
-- Highly reusable
-- Keep styling consistent
-- Avoid business-specific logic
+### Future Planned Features
+- Real-time notifications
+- Analytics dashboard
+- Inventory monitoring
+- Coupon management
+- Low stock alerts
+- Return approval workflow
 
 ---
 
-## Development Rules
+## 2. `/layout`
 
-1. Do NOT break existing functionality.
-2. Reuse components whenever possible.
-3. Keep code modular and scalable.
-4. Follow responsive-first design.
-5. Optimize performance and lazy loading where necessary.
-6. Maintain consistent naming conventions.
+Contains global layout components shared throughout the application.
 
-## Naming Convention
+### Purpose
+Provides consistent structure and navigation across all pages.
 
-Use PascalCase for component files.
+### Current Components
+
+| Component | Purpose |
+|-----------|----------|
+| `Navbar.jsx` | Main website navigation |
+| `Footer.jsx` | Website footer |
+
+### Rules
+- Must stay reusable.
+- Avoid page-specific logic.
+- Maintain responsive behavior.
+- Navigation performance is critical.
+
+---
+
+## 3. `/product`
+
+Contains reusable product-related UI and business components.
+
+### Purpose
+Handles everything related to product display and interactions.
+
+### Current Components
+
+| Component | Purpose |
+|-----------|----------|
+| `ProductActions.jsx` | Product action buttons |
+| `ProductGallery.jsx` | Product image gallery |
+| `ProductInfo.jsx` | Product details section |
+| `ProductPrice.jsx` | Pricing UI |
+| `ProductReviews.jsx` | Customer reviews |
+| `ProductSEO.jsx` | Product SEO metadata |
+| `ProductStockStatus.jsx` | Stock availability display |
+| `ProductVariants.jsx` | Product variant selection |
+| `ReviewForm.jsx` | Customer review submission |
+
+### Rules
+- Components should be reusable across pages.
+- Avoid tightly coupling product logic.
+- Optimize rendering performance.
+- Product pages must remain SEO-friendly.
+
+### Future Planned Features
+- Product comparison
+- Smart recommendations
+- Recently viewed products
+- Advanced variant system
+- Dynamic pricing support
+
+---
+
+## 4. `/shop`
+
+Contains shopping experience and catalog-related components.
+
+### Purpose
+Manages product browsing, filtering, and shopping UX.
+
+### Current Components
+
+| Component | Purpose |
+|-----------|----------|
+| `ShopActiveFilters.jsx` | Active filter display |
+| `ShopFilters.jsx` | Product filtering system |
+| `ShopHeader.jsx` | Shop page header |
+| `ShopMobileFilters.jsx` | Mobile filter UI |
+| `ShopPagination.jsx` | Pagination system |
+| `ShopProductGrid.jsx` | Product listing grid |
+
+### Rules
+- Maintain responsive-first UX.
+- Filters must remain performant.
+- Avoid unnecessary re-renders.
+- Optimize for mobile shopping.
+
+### Future Planned Features
+- Smart filtering
+- AI product suggestions
+- Saved filters
+- Advanced sorting system
+
+---
+
+## 5. `/ui`
+
+Contains reusable global UI components.
+
+### Purpose
+This folder contains highly reusable UI building blocks used across the application.
+
+### Current Components
+
+| Component | Purpose |
+|-----------|----------|
+| `AdminRoute.jsx` | Admin route protection |
+| `ProtectedRoute.jsx` | Authentication route protection |
+| `CustomCursor.jsx` | Premium custom cursor system |
+| `NotificationBell.jsx` | Notification trigger UI |
+| `NotificationDropdown.jsx` | Notification panel |
+| `Skeleton.jsx` | Loading skeleton component |
+| `WhatsAppButton.jsx` | Floating WhatsApp support button |
+
+### Rules
+- Keep components highly reusable.
+- Avoid business-specific logic.
+- Maintain UI consistency.
+- Follow premium design system.
+
+### Future Planned Features
+- Toast notification system
+- Global modal system
+- Reusable confirmation dialogs
+- Animated loaders
+
+---
+
+# Architecture Principles
+
+AUTOCRAFT follows a **component-driven architecture**.
+
+### Core Principles
+
+### 1. Reusability First
+Avoid duplicate UI whenever possible.
+
+Bad:
+```jsx
+<button>Buy Now</button>
+```
 
 Good:
-- ProductCard.jsx
-- CheckoutModal.jsx
-- OrderTracker.jsx
+```jsx
+<ProductActions />
+```
 
-Avoid:
-- productcard.jsx
-- checkout-modal.jsx
-- order_tracker.jsx
+---
 
-## Project Goal
+### 2. Separation of Concerns
 
-AUTOCRAFT aims to maintain an industrial-grade premium ecommerce architecture with scalable, secure, and reusable components.
+Each folder should have a single responsibility.
+
+| Folder | Responsibility |
+|--------|----------------|
+| `admin` | Dashboard & management |
+| `layout` | Shared page layout |
+| `product` | Product-related features |
+| `shop` | Catalog & shopping |
+| `ui` | Global reusable UI |
+
+---
+
+### 3. Performance First
+
+Always prioritize:
+
+- Lazy loading
+- Memoization
+- Component splitting
+- Efficient rendering
+- Mobile responsiveness
+
+---
+
+### 4. Scalable Architecture
+
+Every feature should be designed assuming AUTOCRAFT will grow into a much larger ecommerce platform.
+
+New features should be:
+- Modular
+- Reusable
+- Maintainable
+- Easy to debug
+
+---
+
+# Naming Convention
+
+Use **PascalCase** for component names.
+
+### Good
+
+```bash
+ProductGallery.jsx
+NotificationBell.jsx
+OrderTracking.jsx
+```
+
+### Avoid
+
+```bash
+productgallery.jsx
+notification_bell.jsx
+order-tracking.jsx
+```
+
+---
+
+# Import Guidelines
+
+Prefer clean imports.
+
+Good:
+
+```jsx
+import ProductGallery from "../components/product/ProductGallery";
+```
+
+Avoid deeply nested messy imports whenever possible.
+
+---
+
+# Development Rules
+
+Before creating a new component:
+
+### Ask:
+
+1. Can this be reused?
+2. Does a similar component already exist?
+3. Is this folder the correct place?
+4. Can performance be improved?
+
+---
+
+# Project Vision
+
+AUTOCRAFT is being developed as a **premium automotive ecommerce platform** with industrial-grade frontend architecture, scalable systems, premium UX, and production-level maintainability.
+
+### Philosophy
+
+> “Future me deserves clean code.”
+
+And sometimes...
+
+> “Some problems are solved in code. Others on two wheels on open roads.”
+
+---
+
+**Maintained by:** Saumyadeep Chakraborty  
+**Project:** AUTOCRAFT
