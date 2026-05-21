@@ -91,9 +91,10 @@ router.get('/google/callback',
     failureRedirect: `${process.env.CLIENT_URL}/login?error=google`,
   }),
   (req, res) => {
-    generateToken(res, req.user._id);
+    generateToken(res, req.user);
     res.redirect(`${process.env.CLIENT_URL}?login=success`);
   }
 );
 
 export default router;
+

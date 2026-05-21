@@ -16,6 +16,9 @@ const notificationSchema = new mongoose.Schema({
       'low_stock',
       'back_in_stock',
       'return_request',
+      'return_approved',
+      'return_rejected',
+      'refunded',
       'coupon_expiry',
     ],
     required: true,
@@ -43,6 +46,15 @@ const notificationSchema = new mongoose.Schema({
     enum: ['admin', 'customer'],
     required: true,
   },
+  deduplicationToken: {
+    type: String,
+    index: true,
+  },
+  socketDelivered: {
+    type: Boolean,
+    default: false,
+  },
+  socketDeliveredAt: Date,
   createdAt: {
     type: Date,
     default: Date.now,

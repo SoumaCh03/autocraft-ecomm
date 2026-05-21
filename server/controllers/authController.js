@@ -100,7 +100,7 @@ export const register = async (req, res) => {
 
     const user = await User.create({ name, email, password, phone, isVerified: true });
 
-    generateToken(res, user._id);
+    generateToken(res, user);
 
     // Welcome email
     try {
@@ -156,7 +156,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    generateToken(res, user._id);
+    generateToken(res, user);
 
     res.json({
       message: 'Login successful',
@@ -240,7 +240,7 @@ export const resetPassword = async (req, res) => {
     user.resetPasswordExpire = undefined;
     await user.save();
 
-    generateToken(res, user._id);
+    generateToken(res, user);
     res.json({ message: 'Password reset successful' });
   } catch (error) {
     console.log('RESET PASSWORD ERROR:', error);
@@ -260,9 +260,10 @@ export const resetPasswordOTP = async (req, res) => {
     user.password = password;
     await user.save();
 
-    generateToken(res, user._id);
+    generateToken(res, user);
     res.json({ message: 'Password reset successful' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+

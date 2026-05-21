@@ -7,7 +7,10 @@ import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import sendEmail from '../utils/sendEmail.js';
 import { deductInventoryForOrder } from '../utils/orderInventory.js';
 import { calculateDiscount, validateCoupon } from './couponRoutes.js';
-import { createNotification, notifyAllAdmins } from '../utils/createNotification.js';
+import {
+  notifyAllAdmins,
+  notifyCustomer as socketNotifyCustomer,
+} from '../utils/notificationEmitter.js';
 
 const router = express.Router();
 
@@ -77,12 +80,11 @@ router.post('/', protect, async (req, res) => {
       relatedData: { orderId: order._id },
     });
 
-    await createNotification({
+    await socketNotifyCustomer({
       userId: req.user._id,
       type: 'new_order',
       title: 'Order Placed',
       message: `Your order #${order._id} has been placed successfully`,
-      role: 'customer',
       relatedData: { orderId: order._id },
     });
 
@@ -297,6 +299,32 @@ router.put('/:id/return-status', protect, adminOnly, async (req, res) => {
 
     await order.save();
 
+    if (status === 'approved') {
+      await socketNotifyCustomer({
+        userId: order.user,
+        type: 'return_approved',
+        title: 'Return Approved',
+        message: `Your return request for order #${order._id} has been approved`,
+        relatedData: { orderId: order._id },
+      });
+    } else if (status === 'rejected') {
+      await socketNotifyCustomer({
+        userId: order.user,
+        type: 'return_rejected',
+        title: 'Return Rejected',
+        message: `Your return request for order #${order._id} has been rejected`,
+        relatedData: { orderId: order._id },
+      });
+    } else if (status === 'refunded') {
+      await socketNotifyCustomer({
+        userId: order.user,
+        type: 'refunded',
+        title: 'Refund Processed',
+        message: `Your refund for order #${order._id} has been processed`,
+        relatedData: { orderId: order._id },
+      });
+    }
+
     try {
       if (order.user?.email) {
         const statusText = {
@@ -384,23 +412,21 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
     await order.save();
 
     if (requestedStatus === 'shipped') {
-      await createNotification({
+      await socketNotifyCustomer({
         userId: order.user,
         type: 'order_shipped',
         title: 'Order Shipped',
         message: `Your order #${order._id} has been shipped`,
-        role: 'customer',
         relatedData: { orderId: order._id },
       });
     }
 
     if (requestedStatus === 'delivered') {
-      await createNotification({
+      await socketNotifyCustomer({
         userId: order.user,
         type: 'order_delivered',
         title: 'Order Delivered',
         message: `Your order #${order._id} has been delivered`,
-        role: 'customer',
         relatedData: { orderId: order._id },
       });
     }

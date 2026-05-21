@@ -13,18 +13,25 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data } = await api.get('/auth/me');
-        setUser(data.user);
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
+  const checkAuth = async () => {
+    try {
+      const { data } = await api.get('/auth/me');
+
+      setUser(data.user);
+    } catch (error) {
+      // 401 is expected when user is not logged in
+      if (error.response?.status !== 401) {
+        console.error('[Auth] Failed to fetch current user:', error);
       }
-    };
-    checkAuth();
-  }, []);
+
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  checkAuth();
+}, []);
 
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });

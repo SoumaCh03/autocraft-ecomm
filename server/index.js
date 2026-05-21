@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 dotenv.config(); // MUST BE FIRST
 
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import connectDB from './config/db.js';
@@ -16,6 +18,9 @@ import paymentRoutes     from './routes/paymentRoutes.js';
 import uploadRoutes      from './routes/uploadRoutes.js';
 import couponRoutes      from './routes/couponRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+
+import { initNotificationSocket } from './sockets/notificationSocket.js';
+import { initNotificationEmitter } from './utils/notificationEmitter.js';
 
 connectDB();
 
@@ -93,7 +98,52 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+// Create HTTP server for Socket.IO
+const httpServer = createServer(app);
+
+// Initialize Socket.IO with CORS settings
+const io = new Server(httpServer, {
+  cors: {
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+  },
+  transports: ['websocket', 'polling'],
+  pingInterval: 25000,
+  pingTimeout: 60000,
+});
+
+// Initialize notification socket and emitter
+initNotificationSocket(io);
+initNotificationEmitter(io);
+
+// Export io for use in routes
+export { io };
+
+httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('\n🛑 Shutting down AUTOCRAFT server...');
+
+  httpServer.close(() => {
+    console.log('✅ HTTP server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\n🛑 SIGTERM received. Closing server...');
+
+  httpServer.close(() => {
+    console.log('✅ HTTP server closed');
+    process.exit(0);
+  });
 });
 

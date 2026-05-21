@@ -3,7 +3,7 @@ import Product from '../models/productModel.js';
 import Order from '../models/orderModel.js';
 import sendEmail from '../utils/sendEmail.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
-import { notifyAllAdmins } from '../utils/createNotification.js';
+import { notifyAllAdmins } from '../utils/notificationEmitter.js';
 import variantRoutes from './variantRoutes.js';
 
 const router = express.Router();
@@ -326,3 +326,4 @@ router.post('/:id/review', protect, async (req, res) => {
 router.use('/:productId/variants', variantRoutes);
 
 export default router;
+
