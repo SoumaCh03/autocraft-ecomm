@@ -10,24 +10,31 @@ const API = BASE_URL
 axios.defaults.withCredentials = true
 
 const EMPTY = {
-  name: '', description: '', price: '', mrp: '',
-  category: 'exterior', carBrands: '', carModels: '',
-  stock: '', isFeatured: false,
+  name: '',
+  description: '',
+  price: '',
+  mrp: '',
+  category: 'exterior',
+  carBrands: '',
+  carModels: '',
+  stock: '',
+  isFeatured: false,
+  variants: [],
 }
 
 export default function AdminProducts() {
-  const [products,    setProducts]    = useState([])
-  const [loading,     setLoading]     = useState(true)
-  const [showForm,    setShowForm]    = useState(false)
-  const [editing,     setEditing]     = useState(null)
-  const [form,        setForm]        = useState(EMPTY)
-  const [saving,      setSaving]      = useState(false)
+  const [products,     setProducts]     = useState([])
+  const [loading,      setLoading]      = useState(true)
+  const [showForm,     setShowForm]     = useState(false)
+  const [editing,      setEditing]      = useState(null)
+  const [form,         setForm]         = useState(EMPTY)
+  const [saving,       setSaving]       = useState(false)
 
   // Image state
-  const [imageMode,   setImageMode]   = useState('url')  // 'url' or 'upload'
-  const [imageUrl,    setImageUrl]    = useState('')      // comma separated URLs
+  const [imageMode,    setImageMode]   = useState('url')  // 'url' or 'upload'
+  const [imageUrl,     setImageUrl]    = useState('')      // comma separated URLs
   const [uploadedImgs, setUploadedImgs] = useState([])   // [{url, public_id}]
-  const [uploading,   setUploading]   = useState(false)
+  const [uploading,    setUploading]   = useState(false)
   const fileRef = useRef()
 
   useEffect(() => { fetchProducts() }, [])
@@ -46,7 +53,10 @@ export default function AdminProducts() {
 
   const openAdd = () => {
     setEditing(null)
-    setForm(EMPTY)
+    setForm({
+      ...EMPTY,
+      variants: [],
+    })
     setImageUrl('')
     setUploadedImgs([])
     setImageMode('url')
@@ -56,15 +66,30 @@ export default function AdminProducts() {
   const openEdit = (p) => {
     setEditing(p._id)
     setForm({
-      name:        p.name,
+      name: p.name,
       description: p.description,
-      price:       p.price,
-      mrp:         p.mrp || '',
-      category:    p.category,
-      carBrands:   p.carBrands?.join(', ') || '',
-      carModels:   p.carModels?.join(', ') || '',
-      stock:       p.stock,
-      isFeatured:  p.isFeatured,
+      price: p.price,
+      mrp: p.mrp || '',
+      category: p.category,
+      carBrands: p.carBrands?.join(', ') || '',
+      carModels: p.carModels?.join(', ') || '',
+      stock: p.stock,
+      isFeatured: p.isFeatured,
+      variants:
+        p.variants?.map((variant) => ({
+          _id: variant._id,
+          name: variant.name || '',
+          color: variant.color || '',
+          colorHex: variant.colorHex || '#111111',
+          stock: variant.stock || '',
+          price: variant.price || '',
+          mrp: variant.mrp || '',
+          images: variant.images || [],
+          imageMode: 'url',
+          imageUrl: (variant.images || []).join(', '),
+          uploadedImgs: [],
+          uploading: false,
+        })) || [],
     })
     setImageUrl(p.images?.join(', ') || '')
     setUploadedImgs([])
@@ -111,7 +136,6 @@ export default function AdminProducts() {
       return toast.error('Name, price and stock are required')
     }
 
-    // Determine final images array
     const finalImages = imageMode === 'url'
       ? imageUrl.split(',').map(s => s.trim()).filter(Boolean)
       : uploadedImgs.map(img => img.url)
@@ -124,12 +148,55 @@ export default function AdminProducts() {
     try {
       const payload = {
         ...form,
-        price:     Number(form.price),
-        mrp:       Number(form.mrp) || Number(form.price),
-        stock:     Number(form.stock),
-        carBrands: form.carBrands.split(',').map(s => s.trim()).filter(Boolean),
-        carModels: form.carModels.split(',').map(s => s.trim()).filter(Boolean),
-        images:    finalImages,
+        price: Number(form.price),
+        mrp: Number(form.mrp) || Number(form.price),
+        stock: Number(form.stock),
+        carBrands: form.carBrands
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean),
+        carModels: form.carModels
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean),
+        images: finalImages,
+        variants: (form.variants || []).map((variant) => {
+          const finalVariantImages =
+            variant.imageMode === 'url'
+              ? (variant.imageUrl || '')
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : (variant.uploadedImgs || []).map(
+                  (img) => img.url
+                )
+
+          return {
+            name: variant.name?.trim(),
+            color: variant.color?.trim(),
+            colorHex:
+              variant.colorHex || '#111111',
+
+            stock: Number(
+              variant.stock || 0
+            ),
+
+            price: Number(
+              variant.price || form.price
+            ),
+
+            mrp: Number(
+              variant.mrp ||
+              variant.price ||
+              form.price
+            ),
+
+            images: finalVariantImages,
+
+            available:
+              Number(variant.stock || 0) > 0,
+          }
+        }),
       }
 
       if (editing) {
@@ -207,3 +274,4 @@ export default function AdminProducts() {
     </div>
   )
 }
+

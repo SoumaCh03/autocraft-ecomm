@@ -29,29 +29,48 @@ const variantSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+
+  color: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+
+  colorHex: {
+    type: String,
+    trim: true,
+    default: '#111111',
+  },
+
   sku: {
     type: String,
     trim: true,
   },
+
   stock: {
     type: Number,
     required: true,
     default: 0,
     min: 0,
   },
+
   price: {
     type: Number,
   },
+
   mrp: {
     type: Number,
   },
+
   discount: {
     type: Number,
     default: 0,
     min: 0,
     max: 100,
   },
+
   images: [{ type: String }],
+
   available: {
     type: Boolean,
     default: true,
@@ -118,28 +137,123 @@ const productSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 productSchema.pre('save', function () {
-  this.stock = Math.max(0, Number(this.stock || 0));
-  this.isOutOfStock = this.stock === 0;
-  this.hasVariants = this.variants && this.variants.length > 0;
-});
+  const hasVariants =
+    this.variants &&
+    this.variants.length > 0
 
-productSchema.pre('findOneAndUpdate', function (next) {
-  const update = this.getUpdate() || {};
-  const stock = update.stock ?? update.$set?.stock;
+  this.hasVariants = hasVariants
 
-  if (stock !== undefined) {
-    const safeStock = Math.max(0, Number(stock || 0));
-    if (update.$set) {
-      update.$set.stock = safeStock;
-      update.$set.isOutOfStock = safeStock === 0;
-    } else {
-      update.stock = safeStock;
-      update.isOutOfStock = safeStock === 0;
-    }
-    this.setUpdate(update);
+  if (hasVariants) {
+    const totalVariantStock =
+      this.variants.reduce(
+        (sum, variant) =>
+          sum +
+          Number(
+            variant.stock || 0
+          ),
+        0
+      )
+
+    this.stock =
+      totalVariantStock
+
+    this.isOutOfStock =
+      totalVariantStock <= 0
+  } else {
+    this.stock = Math.max(
+      0,
+      Number(this.stock || 0)
+    )
+
+    this.isOutOfStock =
+      this.stock === 0
   }
+})
 
-  next();
-});
+productSchema.pre(
+  'findOneAndUpdate',
+  function (next) {
+    const update =
+      this.getUpdate() || {}
+
+    const variants =
+      update.variants ??
+      update.$set?.variants
+
+    if (
+      variants &&
+      variants.length > 0
+    ) {
+      const totalStock =
+        variants.reduce(
+          (sum, variant) =>
+            sum +
+            Number(
+              variant.stock || 0
+            ),
+          0
+        )
+
+      if (update.$set) {
+        update.$set.stock =
+          totalStock
+
+        update.$set
+          .isOutOfStock =
+          totalStock <= 0
+
+        update.$set
+          .hasVariants = true
+      } else {
+        update.stock =
+          totalStock
+
+        update.isOutOfStock =
+          totalStock <= 0
+
+        update.hasVariants =
+          true
+      }
+    } else {
+      const stock =
+        update.stock ??
+        update.$set?.stock
+
+      if (stock !== undefined) {
+        const safeStock =
+          Math.max(
+            0,
+            Number(stock || 0)
+          )
+
+        if (update.$set) {
+          update.$set.stock =
+            safeStock
+
+          update.$set
+            .isOutOfStock =
+            safeStock === 0
+
+          update.$set
+            .hasVariants =
+            false
+        } else {
+          update.stock =
+            safeStock
+
+          update.isOutOfStock =
+            safeStock === 0
+
+          update.hasVariants =
+            false
+        }
+      }
+    }
+
+    this.setUpdate(update)
+
+    next()
+  }
+)
 
 export default mongoose.model('Product', productSchema);

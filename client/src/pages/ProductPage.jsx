@@ -44,10 +44,21 @@ export default function ProductPage() {
     const fetch = async () => {
       try {
         const { data } = await axios.get(`${API}/products/${id}`)
-        setProduct(data.product)
+        const fetchedProduct = data.product
+
+        setProduct(fetchedProduct)
         setQty(1)
-        setSelectedVariant(null)
         setImgIdx(0)
+
+        // Auto select first variant
+        if (
+          fetchedProduct.hasVariants &&
+          fetchedProduct.variants?.length > 0
+        ) {
+          setSelectedVariant(fetchedProduct.variants[0])
+        } else {
+          setSelectedVariant(null)
+        }
       } catch {
         toast.error('Product not found')
         navigate('/shop')
@@ -59,44 +70,48 @@ export default function ProductPage() {
   }, [id, navigate])
 
   useEffect(() => {
-  if (!product?._id) return
+    if (!product?._id) return
 
-  try {
-    const existing =
-      JSON.parse(localStorage.getItem('autocraft-recently-viewed')) || []
+    try {
+      const existing =
+        JSON.parse(localStorage.getItem('autocraft-recently-viewed')) || []
 
-    const filtered = existing.filter(
-      (item) => item._id !== product._id
-    )
+      const filtered = existing.filter(
+        (item) => item._id !== product._id
+      )
 
-    const updated = [product, ...filtered].slice(0, 10)
+      const updated = [product, ...filtered].slice(0, 10)
 
-    localStorage.setItem(
-      'autocraft-recently-viewed',
-      JSON.stringify(updated)
-    )
+      localStorage.setItem(
+        'autocraft-recently-viewed',
+        JSON.stringify(updated)
+      )
 
-    const visibleProducts = updated.filter(
-      (item) => item._id !== product._id
-    )
+      const visibleProducts = updated.filter(
+        (item) => item._id !== product._id
+      )
 
-    setRecentlyViewed(visibleProducts)
-  } catch (err) {
-    console.error('Recently viewed failed:', err)
-  }
-}, [product])
+      setRecentlyViewed(visibleProducts)
+    } catch (err) {
+      console.error('Recently viewed failed:', err)
+    }
+  }, [product])
 
   useEffect(() => {
     if (user?.email) setNotifyEmail(user.email)
   }, [user])
 
-  const displayProduct = selectedVariant ? {
-    ...product,
-    price: selectedVariant.price || product.price,
-    mrp: selectedVariant.mrp || product.mrp,
-    stock: selectedVariant.stock,
-    images: selectedVariant.images?.length > 0 ? selectedVariant.images : product.images,
-  } : product
+  const displayProduct = selectedVariant
+    ? {
+        ...product,
+        price: selectedVariant.price ?? product.price,
+        mrp: selectedVariant.mrp ?? product.mrp,
+        stock: selectedVariant.stock ?? product.stock,
+        images: selectedVariant.images?.length
+          ? selectedVariant.images
+          : product.images,
+      }
+    : product
 
   const isOutOfStock = displayProduct?.isOutOfStock || Number(displayProduct?.stock || 0) <= 0
 
@@ -114,18 +129,18 @@ export default function ProductPage() {
   }
 
   const handleRecentlyViewedAddToCart = (product) => {
-  if (product.isOutOfStock || Number(product.stock || 0) <= 0) {
-    return toast.error('Out of stock')
+    if (product.isOutOfStock || Number(product.stock || 0) <= 0) {
+      return toast.error('Out of stock')
+    }
+
+    const added = addToCart(product)
+
+    if (added === false) {
+      return toast.error('Out of stock')
+    }
+
+    toast.success('Added to cart!')
   }
-
-  const added = addToCart(product)
-
-  if (added === false) {
-    return toast.error('Out of stock')
-  }
-
-  toast.success('Added to cart!')
-}
 
   const handleBuyNow = () => {
     if (isOutOfStock) return toast.error('Out of stock')
@@ -338,27 +353,17 @@ export default function ProductPage() {
               )}
             </div>
 
-            {product.hasVariants && product.variants?.length > 0 && (
-              <div className="mb-6 p-4 bg-primary-500/5 border border-primary-500/20 rounded-xl">
-                <p className="text-xs text-primary-500 font-medium uppercase tracking-wider mb-3">Select Variant</p>
-                <div className="flex flex-wrap gap-2">
-                  {product.variants.map((variant) => (
-                    <button
-                      key={variant._id}
-                      type="button"
-                      onClick={() => handleVariantSelect(variant)}
-                      className={`px-4 py-2 text-sm rounded-lg border-2 transition-all ${
-                        selectedVariant?._id === variant._id
-                          ? 'border-primary-500 bg-primary-500/20 text-primary-400'
-                          : 'border-dark-border text-dark-muted hover:border-primary-500/50'
-                      }`}
-                    >
-                      <span className="font-medium">{variant.name}</span>
-                      {variant.stock <= 0 && <span className="text-xs ml-1 text-red-400">(Out)</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            {product.hasVariants &&
+            product.variants?.length > 0 && (
+              <ProductVariants
+                variants={product.variants}
+                selectedVariantId={
+                  selectedVariant?._id
+                }
+                onVariantSelect={
+                  handleVariantSelect
+                }
+              />
             )}
 
             <p className="text-dark-muted leading-relaxed mb-6">{product.description}</p>
@@ -511,3 +516,4 @@ export default function ProductPage() {
     </>
   )
 }
+
