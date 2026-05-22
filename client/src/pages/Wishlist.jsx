@@ -10,14 +10,26 @@ export default function Wishlist() {
   const { wishlist, loading, toggleWishlist } = useWishlist()
   const { addToCart } = useCart()
 
-  const handleAddToCart = (product) => {
+  const handleAddToCart = async (product, moveToCart = false) => {
     if (product.isOutOfStock || Number(product.stock || 0) <= 0) {
       return toast.error('Out of stock')
     }
 
     const added = addToCart(product)
-    if (!added) return toast.error('Out of stock')
-    toast.success('Added to cart')
+
+    if (!added) {
+      return toast.error('Out of stock')
+    }
+
+    if (moveToCart) {
+      const removed = await toggleWishlist(product)
+
+      if (removed === false) {
+        toast.success('Moved to cart')
+      }
+    } else {
+      toast.success('Added to cart')
+    }
   }
 
   if (loading) {
@@ -53,9 +65,9 @@ export default function Wishlist() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.04 }}
-                className="card overflow-hidden group hover:border-primary-500/35 transition-all"
+                className="card flex flex-col overflow-hidden group hover:border-primary-500/35 transition-all"
               >
-                <Link to={`/product/${product._id}`} className="block aspect-square bg-dark-border/50 relative overflow-hidden">
+                <Link to={`/product/${product._id}`} className="block aspect-square bg-dark-border/50 relative overflow-hidden shrink-0">
                   {product.images?.[0] ? (
                     <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
@@ -67,27 +79,88 @@ export default function Wishlist() {
                     </span>
                   )}
                 </Link>
-                <div className="p-4">
+                
+                <div className="p-4 flex flex-col flex-1">
                   <p className="text-xs text-primary-500 capitalize mb-1">{product.category}</p>
                   <Link to={`/product/${product._id}`} className="text-sm font-medium text-dark-text line-clamp-2 hover:text-primary-500 transition-colors">
                     {product.name}
                   </Link>
-                  <div className="flex items-center justify-between mt-4">
-                    <div>
-                      <p className="font-semibold text-dark-text">Rs.{Number(product.price || 0).toLocaleString('en-IN')}</p>
+                  
+                  {/* Pushed to the bottom using mt-auto */}
+                  <div className="mt-auto pt-4">
+                    {/* Price & Stock Row */}
+                    <div className="mb-3">
+                      <p className="font-display font-bold text-lg text-dark-text">
+                        Rs.{Number(product.price || 0).toLocaleString('en-IN')}
+                      </p>
                       {Number(product.stock || 0) > 0 && Number(product.stock || 0) <= 5 && (
-                        <p className="text-xs text-orange-400 mt-0.5">Only {product.stock} left</p>
+                        <p className="text-xs font-medium text-orange-400 mt-0.5">Only {product.stock} left</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => handleAddToCart(product)} className="p-2 rounded-xl bg-primary-500 text-white hover:bg-primary-600 transition-colors" aria-label={`Add ${product.name} to cart`}>
-                        <ShoppingCart size={15} />
+
+                    {/* Actions Row */}
+                    <div className="flex items-center justify-between gap-3">
+                      <button
+                        onClick={() => handleAddToCart(product)}
+                        className="
+                          w-11 h-11 shrink-0
+                          rounded-2xl
+                          bg-primary-500
+                          hover:bg-primary-400
+                          text-white
+                          flex items-center justify-center
+                          transition-all duration-300
+                          hover:shadow-[0_0_20px_rgba(59,107,255,0.22)]
+                          active:scale-95
+                        "
+                        aria-label={`Add ${product.name} to cart`}
+                        title="Add to Cart"
+                      >
+                        <ShoppingCart size={18} />
                       </button>
-                      <button onClick={() => toggleWishlist(product)} className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors" aria-label={`Remove ${product.name} from wishlist`}>
-                        <Trash2 size={15} />
+
+                      <button
+                        onClick={() => handleAddToCart(product, true)}
+                        className="
+                          flex-1 h-11 min-w-0
+                          rounded-2xl
+                          border border-primary-500/20
+                          bg-primary-500/5
+                          text-primary-400
+                          hover:bg-primary-500/10
+                          hover:border-primary-500/40
+                          transition-all duration-300
+                          text-sm font-semibold
+                          whitespace-nowrap
+                          backdrop-blur-sm
+                          flex items-center justify-center
+                          px-4
+                        "
+                      >
+                        Move to Cart
+                      </button>
+
+                      <button
+                        onClick={() => toggleWishlist(product)}
+                        className="
+                          w-11 h-11 shrink-0
+                          rounded-2xl
+                          bg-red-500/10
+                          hover:bg-red-500/20
+                          text-red-400
+                          border border-red-500/10
+                          flex items-center justify-center
+                          transition-all duration-300
+                          active:scale-95
+                        "
+                        aria-label={`Remove ${product.name} from wishlist`}
+                        title="Remove from Wishlist"
+                      >
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </div>
+
                 </div>
               </motion.div>
             ))}
@@ -97,3 +170,4 @@ export default function Wishlist() {
     </>
   )
 }
+

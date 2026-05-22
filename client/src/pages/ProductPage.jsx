@@ -18,6 +18,7 @@ import ProductStockStatus from '../components/product/ProductStockStatus'
 import ProductActions from '../components/product/ProductActions'
 import ProductReviews from '../components/product/ProductReviews'
 import ReviewForm from '../components/product/ReviewForm'
+import RecentlyViewed from '../components/product/RecentlyViewed'
 
 const API = BASE_URL
 
@@ -37,6 +38,7 @@ export default function ProductPage() {
   const [submitting, setSubmitting] = useState(false)
   const [notifyEmail, setNotifyEmail] = useState('')
   const [notifying, setNotifying] = useState(false)
+  const [recentlyViewed, setRecentlyViewed] = useState([])
 
   useEffect(() => {
     const fetch = async () => {
@@ -55,6 +57,34 @@ export default function ProductPage() {
     }
     fetch()
   }, [id, navigate])
+
+  useEffect(() => {
+  if (!product?._id) return
+
+  try {
+    const existing =
+      JSON.parse(localStorage.getItem('autocraft-recently-viewed')) || []
+
+    const filtered = existing.filter(
+      (item) => item._id !== product._id
+    )
+
+    const updated = [product, ...filtered].slice(0, 10)
+
+    localStorage.setItem(
+      'autocraft-recently-viewed',
+      JSON.stringify(updated)
+    )
+
+    const visibleProducts = updated.filter(
+      (item) => item._id !== product._id
+    )
+
+    setRecentlyViewed(visibleProducts)
+  } catch (err) {
+    console.error('Recently viewed failed:', err)
+  }
+}, [product])
 
   useEffect(() => {
     if (user?.email) setNotifyEmail(user.email)
@@ -82,6 +112,20 @@ export default function ProductPage() {
     if (!added) return toast.error('Out of stock')
     toast.success(`${qty} item(s) added to cart!`)
   }
+
+  const handleRecentlyViewedAddToCart = (product) => {
+  if (product.isOutOfStock || Number(product.stock || 0) <= 0) {
+    return toast.error('Out of stock')
+  }
+
+  const added = addToCart(product)
+
+  if (added === false) {
+    return toast.error('Out of stock')
+  }
+
+  toast.success('Added to cart!')
+}
 
   const handleBuyNow = () => {
     if (isOutOfStock) return toast.error('Out of stock')
@@ -456,6 +500,13 @@ export default function ProductPage() {
             </div>
           )}
         </div>
+
+        <RecentlyViewed
+          products={recentlyViewed}
+          isWishlisted={isWishlisted}
+          toggleWishlist={toggleWishlist}
+          handleAddToCart={handleRecentlyViewedAddToCart}
+        />
       </div>
     </>
   )

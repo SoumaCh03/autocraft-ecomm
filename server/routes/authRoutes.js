@@ -82,6 +82,65 @@ router.delete('/wishlist/:productId', protect, async (req, res) => {
   }
 });
 
+router.post('/addresses', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found',
+      })
+    }
+
+    const {
+      label,
+      street,
+      city,
+      state,
+      pincode,
+    } = req.body
+
+    if (!street || !city || !state || !pincode) {
+      return res.status(400).json({
+        message: 'Please fill all required address fields',
+      })
+    }
+
+    const normalize = (value) =>
+      value?.trim().toLowerCase()
+
+    const exists = user.addresses.some(
+      (addr) =>
+        normalize(addr.street) === normalize(street) &&
+        normalize(addr.city) === normalize(city) &&
+        normalize(addr.state) === normalize(state) &&
+        normalize(addr.pincode) === normalize(pincode)
+    )
+
+    if (!exists) {
+      user.addresses.push({
+        label: label || 'Home',
+        street,
+        city,
+        state,
+        pincode,
+      })
+    }
+
+    await user.save()
+
+    res.status(201).json({
+      addresses: user.addresses,
+      user,
+      message: 'Address saved',
+    })
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    })
+  }
+})
+
 router.get('/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );

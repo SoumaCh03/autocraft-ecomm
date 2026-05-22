@@ -16,7 +16,7 @@ export default function CheckoutPage() {
   const { state }     = useLocation()
   const navigate      = useNavigate()
   const { clearCart } = useCart()
-  const { user }      = useAuth()
+  const { user, setUser } = useAuth()
 
   const cartItems  = state?.cartItems  || []
   const cartTotal  = state?.cartTotal  || 0
@@ -24,6 +24,18 @@ export default function CheckoutPage() {
   const grandTotal = state?.grandTotal || 0
   const discount   = state?.discount   || 0
   const couponCode = state?.couponCode || ''
+  
+  const [paymentMethod, setPaymentMethod] = useState('razorpay')
+
+  const codFee =
+    paymentMethod === 'cod'
+    ? Math.min(
+        Math.ceil(cartTotal * 0.02),
+        75
+      )
+    : 0
+
+  const finalTotal = grandTotal + codFee
 
   const [address, setAddress] = useState({
     name:    user?.name || '',
@@ -33,9 +45,24 @@ export default function CheckoutPage() {
     state:   '',
     pincode: '',
   })
+  
   const [loading, setLoading] = useState(false)
+  const [saveAddress, setSaveAddress] = useState(false)
+  const [addressLabel, setAddressLabel] = useState('Home')
 
   const handleChange = (e) => setAddress({ ...address, [e.target.name]: e.target.value })
+
+  const handleSelectSavedAddress = (savedAddress) => {
+    setAddress((prev) => ({
+      ...prev,
+      street: savedAddress.street || '',
+      city: savedAddress.city || '',
+      state: savedAddress.state || '',
+      pincode: savedAddress.pincode || '',
+    }))
+
+    toast.success('Address selected')
+  }
 
   const loadRazorpay = () => {
     return new Promise((resolve) => {
@@ -61,7 +88,71 @@ export default function CheckoutPage() {
 
     setLoading(true)
 
+    // Save address if enabled
+    if (saveAddress && user) {
+      try {
+        const { data } = await axios.post(
+          `${API}/auth/addresses`,
+          {
+            label: addressLabel,
+            street: address.street,
+            city: address.city,
+            state: address.state,
+            pincode: address.pincode,
+          },
+          {
+            withCredentials: true,
+          }
+        )
+
+        if (data.user) {
+          setUser(data.user)
+        }
+      } catch {
+        toast.error('Failed to save address')
+      }
+    }
+
     try {
+      // COD FLOW
+      if (paymentMethod === 'cod') {
+        const orderItems = cartItems.map(i => ({
+          product: i._id,
+          name: i.name,
+          image: i.images?.[0] || '',
+          price: i.price,
+          qty: i.qty,
+        }))
+
+        const { data } = await axios.post(
+          `${API}/orders`,
+          {
+            items: orderItems,
+            shippingAddress: address,
+            paymentMethod: 'cod',
+            itemsPrice: cartTotal,
+            discountPrice: discount,
+            couponCode,
+            shippingPrice: shipping,
+            totalPrice: finalTotal,
+          },
+          { withCredentials: true }
+        )
+
+        clearCart()
+
+        navigate('/order-success', {
+          state: {
+            order: data.order,
+          },
+        })
+
+        toast.success('Order placed successfully')
+
+        return
+      }
+
+      // Razorpay flow
       const loaded = await loadRazorpay()
       if (!loaded) return toast.error('Payment gateway failed to load')
 
@@ -77,15 +168,15 @@ export default function CheckoutPage() {
       const { data: orderData } = await axios.post(`${API}/orders`, {
         items:           orderItems,
         shippingAddress: address,
-        paymentMethod:   'razorpay',
+        paymentMethod,
         itemsPrice:      cartTotal,
         discountPrice:   discount,
         couponCode,
         shippingPrice:   shipping,
-        totalPrice:      grandTotal,
+        totalPrice:      finalTotal,
       }, { withCredentials: true })
 
-      // ✅ FIXED: send orderId instead of amount
+      // Send orderId instead of amount
       const { data: rzpData } = await axios.post(`${API}/payment/create-order`, {
         orderId: orderData.order._id,
       }, { withCredentials: true })
@@ -99,9 +190,9 @@ export default function CheckoutPage() {
         description:  'Car Accessories Order',
         order_id:     rzpData.order.id,
         prefill: {
-          name:    user.name,
-          email:   user.email,
-          contact: user.phone || address.phone,
+          name: user?.name || address.name,
+          email: user?.email || '',
+          contact: user?.phone || address.phone,
         },
         theme: { color: '#3b6bff' },
         handler: async (response) => {
@@ -156,6 +247,47 @@ export default function CheckoutPage() {
                 <h2 className="font-semibold text-dark-text">Delivery Address</h2>
               </div>
 
+              {user?.addresses?.length > 0 && (
+                <div className="mb-6">
+                  <p className="text-xs text-primary-500 font-medium uppercase tracking-wider mb-3">
+                    Saved Addresses
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {user.addresses.map((savedAddress, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() =>
+                          handleSelectSavedAddress(savedAddress)
+                        }
+                        className="text-left p-4 rounded-2xl border border-primary-500/20 bg-primary-500/5 hover:border-primary-500/50 hover:bg-primary-500/10 transition-all duration-300"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-primary-500">
+                            {savedAddress.label || 'Address'}
+                          </span>
+
+                          <span className="text-xs text-dark-muted">
+                            Deliver Here
+                          </span>
+                        </div>
+
+                        <p className="text-sm text-dark-text line-clamp-2">
+                          {savedAddress.street}
+                        </p>
+
+                        <p className="text-xs text-dark-muted mt-2">
+                          {savedAddress.city},{' '}
+                          {savedAddress.state} —{' '}
+                          {savedAddress.pincode}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handlePlaceOrder} className="space-y-4">
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -189,12 +321,115 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-4 bg-primary-500/5 border border-primary-500/20 rounded-xl mt-4">
-                  <CreditCard size={20} className="text-primary-500 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-dark-text">Pay via Razorpay</p>
-                    <p className="text-xs text-dark-muted">UPI, Cards, Net Banking, Wallets — all supported</p>
-                  </div>
+                <div className="p-4 rounded-2xl border border-primary-500/20 bg-primary-500/5 space-y-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={saveAddress}
+                      onChange={(e) =>
+                        setSaveAddress(e.target.checked)
+                      }
+                      className="w-4 h-4 accent-primary-500"
+                    />
+
+                    <span className="text-sm text-dark-text">
+                      Save this address
+                    </span>
+                  </label>
+
+                  {saveAddress && (
+                    <div>
+                      <label className="block text-sm text-dark-muted mb-2">
+                        Address Type
+                      </label>
+
+                      <select
+                        value={addressLabel}
+                        onChange={(e) =>
+                          setAddressLabel(e.target.value)
+                        }
+                        className="input-field"
+                      >
+                        <option>Home</option>
+                        <option>Office</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4 mt-4">
+                  <p className="text-sm font-semibold text-dark-text">
+                    Payment Method
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPaymentMethod('razorpay')
+                    }
+                    className={`w-full text-left p-4 rounded-2xl border transition-all ${
+                      paymentMethod === 'razorpay'
+                        ? 'border-primary-500 bg-primary-500/10'
+                        : 'border-dark-border hover:border-primary-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        checked={paymentMethod === 'razorpay'}
+                        readOnly
+                      />
+
+                      <div>
+                        <p className="font-medium text-dark-text">
+                          Online Payment
+                        </p>
+
+                        <p className="text-xs text-dark-muted">
+                          UPI, Cards, Wallets, Net Banking
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPaymentMethod('cod')
+                    }
+                    className={`w-full text-left p-4 rounded-2xl border transition-all ${
+                      paymentMethod === 'cod'
+                        ? 'border-primary-500 bg-primary-500/10'
+                        : 'border-dark-border hover:border-primary-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          checked={paymentMethod === 'cod'}
+                          readOnly
+                        />
+
+                        <div>
+                          <p className="font-medium text-dark-text">
+                            Cash on Delivery
+                          </p>
+
+                          <p className="text-xs text-dark-muted">
+                            Extra handling fee applies
+                          </p>
+                        </div>
+                      </div>
+
+                      {codFee > 0 && (
+                        <span className="text-sm font-semibold text-amber-400">
+                          +₹{codFee}
+                        </span>
+                      )}
+                    </div>
+                  </button>
                 </div>
 
                 <button
@@ -204,7 +439,10 @@ export default function CheckoutPage() {
                 >
                   {loading
                     ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    : <><CreditCard size={18} /> Pay ₹{grandTotal.toLocaleString()}</>
+                    : <><CreditCard size={18} /> {paymentMethod === 'cod'
+                        ? `Place Order ₹${finalTotal.toLocaleString()}`
+                        : `Pay ₹${finalTotal.toLocaleString()}`
+                      }</>
                   }
                 </button>
 
@@ -244,6 +482,19 @@ export default function CheckoutPage() {
                   {shipping === 0 ? 'FREE' : `₹${shipping}`}
                 </span>
               </div>
+              
+              {paymentMethod === 'cod' && codFee > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-dark-muted">
+                    COD Handling Fee
+                  </span>
+
+                  <span className="text-amber-400">
+                    ₹{codFee}
+                  </span>
+                </div>
+              )}
+
               {discount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-dark-muted">Discount {couponCode ? `(${couponCode})` : ''}</span>
@@ -253,7 +504,7 @@ export default function CheckoutPage() {
               <hr className="border-dark-border" />
               <div className="flex justify-between font-bold text-base">
                 <span className="text-dark-text">Total</span>
-                <span className="text-dark-text">₹{grandTotal.toLocaleString()}</span>
+                <span className="text-dark-text">₹{finalTotal.toLocaleString()}</span>
               </div>
             </div>
 
