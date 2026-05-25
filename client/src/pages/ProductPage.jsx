@@ -10,14 +10,7 @@ import { useWishlist } from '../context/WishlistContext'
 import BASE_URL from '../utils/api'
 import Skeleton from '../components/ui/Skeleton'
 import ProductSEO from '../components/product/ProductSEO'
-import ProductGallery from '../components/product/ProductGallery'
-import ProductInfo from '../components/product/ProductInfo'
-import ProductPrice from '../components/product/ProductPrice'
 import ProductVariants from '../components/product/ProductVariants'
-import ProductStockStatus from '../components/product/ProductStockStatus'
-import ProductActions from '../components/product/ProductActions'
-import ProductReviews from '../components/product/ProductReviews'
-import ReviewForm from '../components/product/ReviewForm'
 import RecentlyViewed from '../components/product/RecentlyViewed'
 
 const API = BASE_URL
@@ -50,12 +43,11 @@ export default function ProductPage() {
         setQty(1)
         setImgIdx(0)
 
-        // Auto select first variant
-        if (
-          fetchedProduct.hasVariants &&
-          fetchedProduct.variants?.length > 0
-        ) {
-          setSelectedVariant(fetchedProduct.variants[0])
+        const fetchedVariants =
+          fetchedProduct.variants?.filter((variant) => variant?.name) || []
+
+        if (fetchedVariants.length > 0) {
+          setSelectedVariant(fetchedVariants[0])
         } else {
           setSelectedVariant(null)
         }
@@ -100,6 +92,9 @@ export default function ProductPage() {
   useEffect(() => {
     if (user?.email) setNotifyEmail(user.email)
   }, [user])
+
+  const productVariants =
+    product?.variants?.filter((variant) => variant?.name) || []
 
   const displayProduct = selectedVariant
     ? {
@@ -353,10 +348,9 @@ export default function ProductPage() {
               )}
             </div>
 
-            {product.hasVariants &&
-            product.variants?.length > 0 && (
+            {productVariants.length > 0 && (
               <ProductVariants
-                variants={product.variants}
+                variants={productVariants}
                 selectedVariantId={
                   selectedVariant?._id
                 }

@@ -189,13 +189,12 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     const previousProduct = await Product.findById(req.params.id);
     if (!previousProduct) return res.status(404).json({ message: 'Product not found' });
 
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const previousStock = Number(previousProduct.stock || 0);
 
-    if (previousProduct.stock <= 0 && product.stock > 0) {
+    previousProduct.set(req.body);
+    const product = await previousProduct.save();
+
+    if (previousStock <= 0 && product.stock > 0) {
       await notifyBackInStockSubscribers(product);
       await notifyAllAdmins({
         type: 'back_in_stock',
@@ -206,7 +205,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     }
 
     const LOW_STOCK_THRESHOLD = 5;
-    if (product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD && previousProduct.stock > LOW_STOCK_THRESHOLD) {
+    if (product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD && previousStock > LOW_STOCK_THRESHOLD) {
       await notifyAllAdmins({
         type: 'low_stock',
         title: `Low Stock Alert: ${product.name}`,

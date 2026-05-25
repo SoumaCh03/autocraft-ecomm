@@ -136,38 +136,30 @@ const productSchema = new mongoose.Schema({
   tags:         [{ type: String }],
 }, { timestamps: true });
 
-productSchema.pre('save', function () {
-  const hasVariants =
-    this.variants &&
-    this.variants.length > 0
+const applyVariantStockState = (target, variants, fallbackStock) => {
+  const hasVariants = Array.isArray(variants) && variants.length > 0
 
-  this.hasVariants = hasVariants
+  target.hasVariants = hasVariants
 
   if (hasVariants) {
-    const totalVariantStock =
-      this.variants.reduce(
-        (sum, variant) =>
-          sum +
-          Number(
-            variant.stock || 0
-          ),
-        0
-      )
-
-    this.stock =
-      totalVariantStock
-
-    this.isOutOfStock =
-      totalVariantStock <= 0
-  } else {
-    this.stock = Math.max(
-      0,
-      Number(this.stock || 0)
+    const totalVariantStock = variants.reduce(
+      (sum, variant) => sum + Number(variant.stock || 0),
+      0
     )
 
-    this.isOutOfStock =
-      this.stock === 0
+    target.stock = totalVariantStock
+    target.isOutOfStock = totalVariantStock <= 0
+    return
   }
+
+  const safeStock = Math.max(0, Number(fallbackStock || 0))
+
+  target.stock = safeStock
+  target.isOutOfStock = safeStock === 0
+}
+
+productSchema.pre('save', function () {
+  applyVariantStockState(this, this.variants, this.stock)
 })
 
 productSchema.pre(
@@ -180,39 +172,22 @@ productSchema.pre(
       update.variants ??
       update.$set?.variants
 
-    if (
-      variants &&
-      variants.length > 0
-    ) {
-      const totalStock =
-        variants.reduce(
-          (sum, variant) =>
-            sum +
-            Number(
-              variant.stock || 0
-            ),
-          0
-        )
+    if (Array.isArray(variants)) {
+      const derived = {}
+      const stock =
+        update.stock ??
+        update.$set?.stock
+
+      applyVariantStockState(derived, variants, stock)
 
       if (update.$set) {
-        update.$set.stock =
-          totalStock
-
-        update.$set
-          .isOutOfStock =
-          totalStock <= 0
-
-        update.$set
-          .hasVariants = true
+        update.$set.stock = derived.stock
+        update.$set.isOutOfStock = derived.isOutOfStock
+        update.$set.hasVariants = derived.hasVariants
       } else {
-        update.stock =
-          totalStock
-
-        update.isOutOfStock =
-          totalStock <= 0
-
-        update.hasVariants =
-          true
+        update.stock = derived.stock
+        update.isOutOfStock = derived.isOutOfStock
+        update.hasVariants = derived.hasVariants
       }
     } else {
       const stock =

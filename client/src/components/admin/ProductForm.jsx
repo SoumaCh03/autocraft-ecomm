@@ -6,6 +6,15 @@ import BASE_URL from '../../utils/api'
 const API = BASE_URL
 const CATEGORIES = ['exterior', 'interior', 'lighting', 'electronics', 'car-care', 'dashboard']
 
+const getUsableVariants = (variants = []) =>
+  variants.filter((variant) => variant.name?.trim())
+
+const getVariantStockTotal = (variants = []) =>
+  getUsableVariants(variants).reduce(
+    (sum, variant) => sum + Number(variant.stock || 0),
+    0
+  )
+
 export default function ProductForm({
   showForm,
   setShowForm,
@@ -58,16 +67,26 @@ export default function ProductForm({
 
       return {
         ...prev,
+        stock: getUsableVariants(updated).length
+          ? getVariantStockTotal(updated)
+          : prev.stock,
         variants: updated,
       }
     })
   }
 
   const removeVariant = (index) => {
-    setForm((prev) => ({
-      ...prev,
-      variants: prev.variants?.filter((_, i) => i !== index) || [],
-    }))
+    setForm((prev) => {
+      const updated = prev.variants?.filter((_, i) => i !== index) || []
+
+      return {
+        ...prev,
+        stock: getUsableVariants(updated).length
+          ? getVariantStockTotal(updated)
+          : prev.stock,
+        variants: updated,
+      }
+    })
   }
 
   const handleVariantUpload = async (index, e) => {
@@ -131,6 +150,11 @@ export default function ProductForm({
 
   if (!showForm) return null
 
+  const hasVariants = getUsableVariants(form.variants || []).length > 0
+  const displayedStock = hasVariants
+    ? getVariantStockTotal(form.variants)
+    : form.stock
+
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 sm:p-8">
@@ -170,7 +194,7 @@ export default function ProductForm({
 
             <div>
               <label className="block text-sm text-dark-muted mb-1">Stock Quantity *</label>
-              <input type="number" name="stock" value={form.stock} onChange={handleChange} className="input-field" placeholder="50" />
+              <input type="number" name="stock" value={displayedStock} onChange={hasVariants ? undefined : handleChange} readOnly={hasVariants} className="input-field" placeholder="50" />
             </div>
 
             <div>
@@ -477,5 +501,4 @@ export default function ProductForm({
     </div>
   )
 }
-
 

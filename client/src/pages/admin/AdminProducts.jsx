@@ -9,6 +9,15 @@ import ProductList from '../../components/admin/ProductList'
 const API = BASE_URL
 axios.defaults.withCredentials = true
 
+const getUsableVariants = (variants = []) =>
+  variants.filter((variant) => variant.name?.trim())
+
+const getVariantStockTotal = (variants = []) =>
+  getUsableVariants(variants).reduce(
+    (sum, variant) => sum + Number(variant.stock || 0),
+    0
+  )
+
 const EMPTY = {
   name: '',
   description: '',
@@ -64,6 +73,8 @@ export default function AdminProducts() {
   }
 
   const openEdit = (p) => {
+    const hasVariants = getUsableVariants(p.variants || []).length > 0
+
     setEditing(p._id)
     setForm({
       name: p.name,
@@ -73,7 +84,7 @@ export default function AdminProducts() {
       category: p.category,
       carBrands: p.carBrands?.join(', ') || '',
       carModels: p.carModels?.join(', ') || '',
-      stock: p.stock,
+      stock: hasVariants ? getVariantStockTotal(p.variants) : p.stock,
       isFeatured: p.isFeatured,
       variants:
         p.variants?.map((variant) => ({
@@ -132,7 +143,57 @@ export default function AdminProducts() {
 
   const handleSave = async (e) => {
     e.preventDefault()
-    if (!form.name || !form.price || !form.stock) {
+
+    const variantPayload = (form.variants || [])
+      .filter((variant) => variant.name?.trim())
+      .map((variant) => {
+        const finalVariantImages =
+          variant.imageMode === 'url'
+            ? (variant.imageUrl ?? (variant.images || []).join(', '))
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : (variant.uploadedImgs || []).length > 0
+              ? (variant.uploadedImgs || []).map(
+                  (img) => img.url
+                )
+              : (variant.images || [])
+
+        return {
+          ...(variant._id ? { _id: variant._id } : {}),
+
+          name: variant.name?.trim(),
+          color: variant.color?.trim(),
+          colorHex:
+            variant.colorHex || '#111111',
+
+          stock: Number(
+            variant.stock || 0
+          ),
+
+          price: Number(
+            variant.price || form.price
+          ),
+
+          mrp: Number(
+            variant.mrp ||
+            variant.price ||
+            form.price
+          ),
+
+          images: finalVariantImages,
+
+          available:
+            Number(variant.stock || 0) > 0,
+        }
+      })
+
+    const hasVariants = variantPayload.length > 0
+    const finalStock = hasVariants
+      ? getVariantStockTotal(variantPayload)
+      : Number(form.stock || 0)
+
+    if (!form.name || !form.price || (!hasVariants && form.stock === '')) {
       return toast.error('Name, price and stock are required')
     }
 
@@ -150,7 +211,7 @@ export default function AdminProducts() {
         ...form,
         price: Number(form.price),
         mrp: Number(form.mrp) || Number(form.price),
-        stock: Number(form.stock),
+        stock: finalStock,
         carBrands: form.carBrands
           .split(',')
           .map(s => s.trim())
@@ -160,43 +221,7 @@ export default function AdminProducts() {
           .map(s => s.trim())
           .filter(Boolean),
         images: finalImages,
-        variants: (form.variants || []).map((variant) => {
-          const finalVariantImages =
-            variant.imageMode === 'url'
-              ? (variant.imageUrl || '')
-                  .split(',')
-                  .map((s) => s.trim())
-                  .filter(Boolean)
-              : (variant.uploadedImgs || []).map(
-                  (img) => img.url
-                )
-
-          return {
-            name: variant.name?.trim(),
-            color: variant.color?.trim(),
-            colorHex:
-              variant.colorHex || '#111111',
-
-            stock: Number(
-              variant.stock || 0
-            ),
-
-            price: Number(
-              variant.price || form.price
-            ),
-
-            mrp: Number(
-              variant.mrp ||
-              variant.price ||
-              form.price
-            ),
-
-            images: finalVariantImages,
-
-            available:
-              Number(variant.stock || 0) > 0,
-          }
-        }),
+        variants: variantPayload,
       }
 
       if (editing) {
