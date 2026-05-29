@@ -231,4 +231,23 @@ productSchema.pre(
   }
 )
 
+productSchema.index({ category: 1 });
+productSchema.index({ price: 1 });
+productSchema.index({ rating: -1 });
+productSchema.index({ stock: 1 });
+productSchema.index({
+  name: 'text',
+  description: 'text',
+  category: 'text',
+  carBrands: 'text',
+}, {
+  weights: {
+    name: 10,
+    category: 5,
+    carBrands: 3,
+    description: 1,
+  },
+  name: 'ProductTextIndex',
+});
+
 export default mongoose.model('Product', productSchema);

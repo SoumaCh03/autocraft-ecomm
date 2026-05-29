@@ -21,7 +21,17 @@ const userSchema = new mongoose.Schema({
   resetPasswordToken:  String,
   resetPasswordExpire: Date,
   isVerified: { type: Boolean, default: false },
+  passwordHistory: [{ type: String }],
+  otpCode:    String,
+  otpExpire:   Date,
+  otpVerified: { type: Boolean, default: false },
+  refreshTokens: [{
+    token:     { type: String, required: true },
+    expiresAt: { type: Date, required: true },
+  }],
 }, { timestamps: true });
+
+userSchema.index({ googleId: 1 }, { sparse: true });
 
 /* ✅ FIXED PRE SAVE HOOK */
 userSchema.pre('save', async function () {
@@ -38,4 +48,3 @@ userSchema.methods.matchPassword = async function (entered) {
 };
 
 export default mongoose.model('User', userSchema);
-

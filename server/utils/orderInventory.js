@@ -1,6 +1,12 @@
 import Product from '../models/productModel.js';
 import Coupon from '../models/couponModel.js';
+import Order from '../models/orderModel.js';
 
+/**
+ * Deducts inventory atomically for a given order.
+ * Safe against race conditions using findOneAndUpdate with stock validation.
+ * @param {Object} order 
+ */
 export const deductInventoryForOrder = async (order) => {
   if (order.inventoryDeducted) return;
 
@@ -45,6 +51,7 @@ export const deductInventoryForOrder = async (order) => {
       deducted.push({ productId: item.product, qty });
     }
   } catch (error) {
+    // Rollback any deducted inventory on failure
     for (const item of deducted) {
       await Product.findByIdAndUpdate(item.productId, {
         $inc: { stock: item.qty, soldCount: -item.qty },
@@ -67,5 +74,67 @@ export const deductInventoryForOrder = async (order) => {
         },
       }
     );
+  }
+};
+
+/**
+ * Self-cleaning lease logic to release inventory reserved for unpaid, expired pending Razorpay orders.
+ * Reverts inventory levels and cancels the order documents.
+ */
+export const releaseExpiredPendingOrders = async () => {
+  try {
+    const expirationTime = new Date(Date.now() - 15 * 60 * 1000); // 15 minutes expiration window
+    const expiredOrders = await Order.find({
+      paymentMethod: 'razorpay',
+      isPaid: false,
+      status: 'pending',
+      inventoryDeducted: true,
+      createdAt: { $lt: expirationTime }
+    });
+
+    if (expiredOrders.length === 0) return;
+
+    console.log(`[Inventory Lease] Found ${expiredOrders.length} expired pending orders. Releasing stock...`);
+
+    for (const order of expiredOrders) {
+      console.log(`[Inventory Lease] Releasing stock for order ${order._id}`);
+      
+      for (const item of order.items) {
+        const qty = Number(item.qty || 1);
+        const product = await Product.findByIdAndUpdate(
+          item.product,
+          {
+            $inc: { stock: qty, soldCount: -qty },
+            $pull: { salesHistory: { order: order._id } }
+          },
+          { new: true }
+        );
+
+        if (product && product.stock > 0 && product.isOutOfStock) {
+          product.isOutOfStock = false;
+          await product.save();
+        }
+      }
+
+      if (order.coupon?.code && Number(order.discountPrice || 0) > 0) {
+        await Coupon.findOneAndUpdate(
+          { code: order.coupon.code },
+          {
+            $inc: {
+              usedCount: -1,
+              revenueImpact: -Number(order.discountPrice || 0),
+            }
+          }
+        );
+      }
+
+      order.status = 'cancelled';
+      order.inventoryDeducted = false;
+      await order.save();
+    }
+
+    console.log('[Inventory Lease] Release cycle complete.');
+  } catch (error) {
+    console.error('CRITICAL [Inventory Lease] Release failed:', error.message);
   }
 };

@@ -5,6 +5,7 @@ import sendEmail from '../utils/sendEmail.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import { notifyAllAdmins } from '../utils/notificationEmitter.js';
 import variantRoutes from './variantRoutes.js';
+import { localCache } from '../utils/cache.js';
 
 const router = express.Router();
 
@@ -40,21 +41,27 @@ const notifyBackInStockSubscribers = async (product) => {
   await product.save();
 };
 
-// GET all products with filters + sorting
+// GET all products with filters + sorting (Cached for 2 minutes)
 router.get('/', async (req, res) => {
   try {
     const { category, brand, model, search, sort, page = 1, limit = 12, priceMin, priceMax, ratingMin, inStock } = req.query;
+
+    const cacheKey = `products:list:${JSON.stringify(req.query)}`;
+    const cachedData = localCache.get(cacheKey);
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+
     const query = {};
 
     if (category) query.category = category;
     if (brand) query.carBrands = { $in: [brand] };
     if (model) query.carModels = { $in: [model] };
-    if (search) query.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { category: { $regex: search, $options: 'i' } },
-      { carBrands: { $in: [new RegExp(search, 'i')] } },
-    ];
+    
+    if (search) {
+      // Use Mongo compound Text index for high-relevance full-text search
+      query.$text = { $search: search };
+    }
 
     if (priceMin || priceMax) {
       query.price = {};
@@ -74,30 +81,52 @@ router.get('/', async (req, res) => {
     if (sort === 'price-asc') sortOption = { price: 1 };
     if (sort === 'price-desc') sortOption = { price: -1 };
     if (sort === 'rating') sortOption = { rating: -1 };
-    if (sort === 'relevance') sortOption = { numReviews: -1 };
+    if (sort === 'relevance') {
+      if (search) {
+        sortOption = { score: { $meta: 'textScore' } };
+      } else {
+        sortOption = { numReviews: -1 };
+      }
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
     const total = await Product.countDocuments(query);
-    const products = await Product.find(query)
+    
+    let productsQuery = Product.find(query);
+    if (search && sort === 'relevance') {
+      productsQuery = productsQuery.select({ score: { $meta: 'textScore' } });
+    }
+
+    const products = await productsQuery
       .sort(sortOption)
       .skip(skip)
       .limit(Number(limit));
 
-    res.json({
+    const responseData = {
       products,
       total,
       page: Number(page),
       pages: Math.ceil(total / Number(limit)),
-    });
+    };
+
+    localCache.set(cacheKey, responseData, 120); // 2 minutes list cache
+
+    res.json(responseData);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// GET featured products by weekly sales first, then admin-curated featured fallback
+// GET featured products (Cached for 1 hour)
 router.get('/featured', async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 8, 12);
+    const cacheKey = `products:featured:${limit}`;
+    const cachedData = localCache.get(cacheKey);
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     const weeklySales = await Order.aggregate([
@@ -156,18 +185,31 @@ router.get('/featured', async (req, res) => {
       ];
     }
 
-    res.json({ products });
+    const responseData = { products };
+    localCache.set(cacheKey, responseData, 3600); // 1 hour cache
+
+    res.json(responseData);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// GET single product
+// GET single product (Cached for 5 minutes)
 router.get('/:id', async (req, res) => {
   try {
+    const cacheKey = `products:detail:${req.params.id}`;
+    const cachedData = localCache.get(cacheKey);
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
-    res.json({ product });
+
+    const responseData = { product };
+    localCache.set(cacheKey, responseData, 300); // 5 minutes cache
+
+    res.json(responseData);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -177,6 +219,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
     const product = await Product.create(req.body);
+    localCache.clearByPrefix('products'); // Invalidate product caches
     res.status(201).json({ product });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -214,6 +257,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
       });
     }
 
+    localCache.clearByPrefix('products'); // Invalidate product caches
     res.json({ product });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -225,6 +269,7 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
+    localCache.clearByPrefix('products'); // Invalidate product caches
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -316,6 +361,7 @@ router.post('/:id/review', protect, async (req, res) => {
     product.rating     = product.reviews.reduce((a, r) => a + r.rating, 0) / product.reviews.length;
 
     await product.save();
+    localCache.clearByPrefix('products'); // Invalidate product caches on new reviews
     res.status(201).json({ message: 'Review added successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -325,4 +371,3 @@ router.post('/:id/review', protect, async (req, res) => {
 router.use('/:productId/variants', variantRoutes);
 
 export default router;
-

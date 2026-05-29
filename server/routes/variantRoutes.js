@@ -1,6 +1,7 @@
 import express from 'express';
 import Product from '../models/productModel.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { localCache } from '../utils/cache.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -31,6 +32,8 @@ router.post('/', protect, adminOnly, async (req, res) => {
 
     product.variants.push(newVariant);
     await product.save();
+
+    localCache.clearByPrefix('products'); // Invalidate cached lists/details
 
     res.status(201).json({
       message: 'Variant added successfully',
@@ -63,6 +66,8 @@ router.put('/:variantId', protect, adminOnly, async (req, res) => {
 
     await product.save();
 
+    localCache.clearByPrefix('products'); // Invalidate cached lists/details
+
     res.json({
       message: 'Variant updated successfully',
       variant,
@@ -85,6 +90,8 @@ router.delete('/:variantId', protect, adminOnly, async (req, res) => {
 
     variant.deleteOne();
     await product.save();
+
+    localCache.clearByPrefix('products'); // Invalidate cached lists/details
 
     res.json({
       message: 'Variant deleted successfully',

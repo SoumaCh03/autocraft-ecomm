@@ -11,6 +11,7 @@ import {
   sendOTP,
   verifyOTP,
   resetPasswordOTP,
+  updatePassword,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { generateToken } from '../utils/generateToken.js';
@@ -23,6 +24,7 @@ router.post('/register',             register);
 router.post('/login',                login);
 router.post('/logout',               logout);
 router.get('/me',       protect,     getMe);
+router.put('/update-password', protect,  updatePassword);
 router.post('/forgot-password',      forgotPassword);
 router.post('/reset-password/:token', resetPassword);
 router.post('/reset-password-otp',   resetPasswordOTP);
@@ -149,8 +151,8 @@ router.get('/google/callback',
   passport.authenticate('google', {
     failureRedirect: `${process.env.CLIENT_URL}/login?error=google`,
   }),
-  (req, res) => {
-    generateToken(res, req.user);
+  async (req, res) => {
+    await generateToken(res, req.user);
     res.redirect(`${process.env.CLIENT_URL}?login=success`);
   }
 );

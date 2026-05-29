@@ -5,7 +5,7 @@ import User from '../models/userModel.js';
 import Coupon from '../models/couponModel.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import sendEmail from '../utils/sendEmail.js';
-import { deductInventoryForOrder } from '../utils/orderInventory.js';
+import { deductInventoryForOrder, releaseExpiredPendingOrders } from '../utils/orderInventory.js';
 import { calculateDiscount, validateCoupon } from './couponRoutes.js';
 import {
   notifyAllAdmins,
@@ -23,6 +23,9 @@ const isReturnWindowOpen = (order) => {
 
 router.post('/', protect, async (req, res) => {
   try {
+    // Run self-cleaning cycle on database stock leases before checking stock
+    await releaseExpiredPendingOrders();
+
     const { items, shippingAddress, paymentMethod, itemsPrice, shippingPrice, totalPrice, couponCode } = req.body;
     if (!items || items.length === 0) return res.status(400).json({ message: 'No items in order' });
 
@@ -68,9 +71,14 @@ router.post('/', protect, async (req, res) => {
       totalPrice: couponCode ? safeTotalPrice : totalPrice,
     });
 
-    if (paymentMethod === 'cod') {
+    try {
+      // Reserve stock immediately to prevent double-selling under heavy traffic
       await deductInventoryForOrder(order);
       await order.save();
+    } catch (invErr) {
+      // Rollback order document if stock allocation fails
+      await Order.findByIdAndDelete(order._id);
+      return res.status(400).json({ message: invErr.message });
     }
 
     await notifyAllAdmins({
@@ -407,6 +415,12 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
     if (requestedStatus === 'delivered') {
       if (!order.shippedAt) order.shippedAt = new Date();
       if (!order.deliveredAt) order.deliveredAt = new Date();
+      
+      // Auto-set COD orders as Paid when delivered
+      if (order.paymentMethod === 'cod') {
+        order.isPaid = true;
+        if (!order.paidAt) order.paidAt = new Date();
+      }
     }
 
     await order.save();
@@ -462,6 +476,22 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
     }
 
     res.json({ order });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PUT update payment status (admin only)
+router.put('/:id/pay-status', protect, adminOnly, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    order.isPaid = Boolean(req.body.isPaid);
+    order.paidAt = req.body.isPaid ? new Date() : undefined;
+    await order.save();
+
+    res.json({ order, message: `Order payment marked as ${order.isPaid ? 'Paid' : 'Unpaid'}` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

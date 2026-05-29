@@ -3,7 +3,7 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import Order from '../models/orderModel.js';
 import { protect } from '../middleware/authMiddleware.js';
-import { deductInventoryForOrder } from '../utils/orderInventory.js';
+import { deductInventoryForOrder, releaseExpiredPendingOrders } from '../utils/orderInventory.js';
 
 const router = express.Router();
 
@@ -21,8 +21,10 @@ const getRazorpay = () => {
 // 🔥 CREATE ORDER
 router.post('/create-order', protect, async (req, res) => {
   try {
-    const razorpay = getRazorpay();
+    // Run self-cleaning cycle on database stock leases
+    await releaseExpiredPendingOrders();
 
+    const razorpay = getRazorpay();
     const { orderId } = req.body;
 
     // ✅ Debug log
@@ -38,6 +40,11 @@ router.post('/create-order', protect, async (req, res) => {
     if (!order) {
       console.log('ORDER NOT FOUND FOR ID:', orderId);
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Check if the order is already cancelled because it took too long
+    if (order.status === 'cancelled') {
+      return res.status(400).json({ message: 'This order session has expired. Please place a new order.' });
     }
 
     const options = {
@@ -59,6 +66,9 @@ router.post('/create-order', protect, async (req, res) => {
 // 🔥 VERIFY PAYMENT
 router.post('/verify', protect, async (req, res) => {
   try {
+    // Run self-cleaning cycle on database stock leases
+    await releaseExpiredPendingOrders();
+
     const {
       razorpay_order_id,
       razorpay_payment_id,
@@ -99,7 +109,6 @@ router.post('/verify', protect, async (req, res) => {
 
     order.isPaid = true;
     order.paidAt = Date.now();
-    order.status = 'processing';
     order.paymentResult = {
       razorpay_order_id,
       razorpay_payment_id,
@@ -107,7 +116,23 @@ router.post('/verify', protect, async (req, res) => {
       status: 'paid',
     };
 
-    await deductInventoryForOrder(order);
+    // If order was cancelled because payment took > 15 minutes, attempt to allocate stock or mark for refund
+    if (order.status === 'cancelled') {
+      try {
+        console.log(`⚠️ Order ${order._id} was cancelled prior to payment verification. Attempting stock re-allocation...`);
+        // Temporarily reset status so we can check/deduct inventory
+        order.status = 'pending';
+        await deductInventoryForOrder(order);
+        order.status = 'processing';
+      } catch (invErr) {
+        console.log(`❌ Stock re-allocation failed for paid cancelled order ${order._id}. Marking for manual refund:`, invErr.message);
+        order.status = 'processing';
+        order.billUrl = 'REFUND_REQUIRED: Out of stock during delayed payment';
+      }
+    } else {
+      order.status = 'processing';
+    }
+
     await order.save();
 
     res.json({ message: 'Payment verified successfully', order });
@@ -119,4 +144,3 @@ router.post('/verify', protect, async (req, res) => {
 });
 
 export default router;
-

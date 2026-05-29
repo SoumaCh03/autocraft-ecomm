@@ -1,6 +1,6 @@
 import OrderCard from './OrderCard'
 
-export default function OrderList({ orders, loading, updateStatus, trackingForms, handleTrackingChange, saveTracking, trackingSaving, returnNotes, setReturnNotes, updateReturnStatus, returnUpdating, downloadShippingPDF, handleBillUpload, uploading, fileInputRef, toast }) {
+export default function OrderList({ orders, loading, updateStatus, setPaymentStatus, trackingForms, handleTrackingChange, saveTracking, trackingSaving, returnNotes, setReturnNotes, updateReturnStatus, returnUpdating, downloadShippingPDF, handleBillUpload, uploading, fileInputRef, toast }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -24,6 +24,7 @@ export default function OrderList({ orders, loading, updateStatus, trackingForms
           key={order._id}
           order={order}
           updateStatus={updateStatus}
+          setPaymentStatus={setPaymentStatus}
           trackingForms={trackingForms}
           handleTrackingChange={handleTrackingChange}
           saveTracking={saveTracking}

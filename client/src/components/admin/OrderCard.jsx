@@ -5,7 +5,7 @@ import OrderActions from './OrderActions'
 
 const STATUS_OPTIONS = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
 
-export default function OrderCard({ order, updateStatus, trackingForms, handleTrackingChange, saveTracking, trackingSaving, returnNotes, setReturnNotes, updateReturnStatus, returnUpdating, downloadShippingPDF, handleBillUpload, uploading, fileInputRef, toast }) {
+export default function OrderCard({ order, updateStatus, setPaymentStatus, trackingForms, handleTrackingChange, saveTracking, trackingSaving, returnNotes, setReturnNotes, updateReturnStatus, returnUpdating, downloadShippingPDF, handleBillUpload, uploading, fileInputRef, toast }) {
   const hasReturn = order.returnRequest?.requested
   const returnRequests = order.returnRequest?.status === 'requested' ? 1 : 0
 
@@ -15,6 +15,15 @@ export default function OrderCard({ order, updateStatus, trackingForms, handleTr
         <div>
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <p className="text-xs text-dark-muted">Order ID</p>
+            {order.paymentMethod && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold border tracking-wide font-mono ${
+                order.paymentMethod === 'cod'
+                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                  : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+              }`}>
+                {order.paymentMethod.toUpperCase()}
+              </span>
+            )}
             {hasReturn && (
               <span className="text-xs bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full flex items-center gap-1 capitalize">
                 <RotateCcw size={11} /> Return {order.returnRequest.status}
@@ -32,9 +41,23 @@ export default function OrderCard({ order, updateStatus, trackingForms, handleTr
 
         <div className="flex flex-col sm:items-end gap-2">
           <p className="font-bold text-dark-text text-lg">₹{order.totalPrice?.toLocaleString()}</p>
-          <span className={`text-xs px-3 py-1 rounded-full font-medium w-fit ${order.isPaid ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-            {order.isPaid ? '✓ Paid' : '✗ Unpaid'}
-          </span>
+          <select
+            value={order.isPaid ? 'paid' : 'unpaid'}
+            onChange={(e) => {
+              const targetPaid = e.target.value === 'paid';
+              if (window.confirm(`Are you sure you want to mark this order as ${targetPaid ? 'PAID' : 'UNPAID'}?`)) {
+                setPaymentStatus(order._id, targetPaid);
+              }
+            }}
+            className={`input-field py-1.5 text-xs w-40 font-medium ${
+              order.isPaid
+                ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                : 'bg-red-500/10 text-red-400 border-red-500/30'
+            }`}
+          >
+            <option value="unpaid" className="bg-dark-bg text-red-400">✗ Unpaid</option>
+            <option value="paid" className="bg-dark-bg text-green-400">✓ Paid</option>
+          </select>
           <select value={order.status} onChange={(e) => updateStatus(order._id, e.target.value)} className="input-field py-1.5 text-xs w-40">
             {STATUS_OPTIONS.map(s => (
               <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>

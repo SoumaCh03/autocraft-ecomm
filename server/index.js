@@ -8,6 +8,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import connectDB from './config/db.js';
 import session from 'express-session';
+import helmet from 'helmet';
 
 import passport from './config/passport.js';
 
@@ -18,6 +19,9 @@ import paymentRoutes     from './routes/paymentRoutes.js';
 import uploadRoutes      from './routes/uploadRoutes.js';
 import couponRoutes      from './routes/couponRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+
+import { sanitizeInput } from './middleware/sanitizeMiddleware.js';
+import { apiLimiter, authLimiter, passwordResetLimiter } from './middleware/rateLimitMiddleware.js';
 
 import { initNotificationSocket } from './sockets/notificationSocket.js';
 import { initNotificationEmitter } from './utils/notificationEmitter.js';
@@ -39,6 +43,10 @@ const envAllowedOrigins = process.env.CLIENT_URL
 
 const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigins])];
 
+app.use(helmet({
+  contentSecurityPolicy: false, // Pure API server; CSP is disabled to not block frontend client assets
+}));
+
 app.use(cors({
   origin(origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -57,10 +65,24 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Payload size limits to protect against buffer overflow/JSON flooding DOS
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 app.use(cookieParser());
+
+// Custom recursive NoSQL Injection sanitizer
+app.use(sanitizeInput);
+
+// Rate limiting setup
+app.use('/api', apiLimiter);
+
+// Specific brute-force protection rate limits
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/forgot-password', passwordResetLimiter);
+app.use('/api/auth/reset-password', passwordResetLimiter);
+app.use('/api/auth/reset-password-otp', passwordResetLimiter);
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'autocraft_secret',

@@ -21,7 +21,13 @@ export default function ResetPassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (form.password.length < 6) return toast.error('Password must be at least 6 characters')
+    if (form.password.length < 12) return toast.error('Password must be at least 12 characters')
+    if (!/[A-Z]/.test(form.password)) return toast.error('Password must contain at least one uppercase letter')
+    if (!/[a-z]/.test(form.password)) return toast.error('Password must contain at least one lowercase letter')
+    if (!/[0-9]/.test(form.password)) return toast.error('Password must contain at least one number')
+    if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/;`]/.test(form.password)) {
+      return toast.error('Password must contain at least one special character')
+    }
     if (form.password !== form.confirm) return toast.error('Passwords do not match')
     setLoading(true)
     try {

@@ -17,6 +17,7 @@ export default function ForgotPassword() {
   const [email,    setEmail]    = useState('')
   const [otp,      setOtp]      = useState('')
   const [passwords, setPasswords] = useState({ password: '', confirm: '' })
+  const [resetToken, setResetToken] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [loading,  setLoading]  = useState(false)
   const [done,     setDone]     = useState(false)
@@ -41,7 +42,8 @@ export default function ForgotPassword() {
     if (!otp || otp.length !== 6) return toast.error('Enter the 6-digit OTP')
     setLoading(true)
     try {
-      await axios.post(`${API}/auth/verify-otp`, { email, otp })
+      const { data } = await axios.post(`${API}/auth/verify-otp`, { email, otp })
+      setResetToken(data.resetToken || '')
       toast.success('OTP verified!')
       setStep(3)
     } catch (err) {
@@ -53,14 +55,24 @@ export default function ForgotPassword() {
 
   const handleResetPassword = async (e) => {
     e.preventDefault()
-    if (passwords.password.length < 6) return toast.error('Password must be at least 6 characters')
+    
+    // Strict password strength validation
+    if (passwords.password.length < 12) return toast.error('Password must be at least 12 characters')
+    if (!/[A-Z]/.test(passwords.password)) return toast.error('Password must contain at least one uppercase letter')
+    if (!/[a-z]/.test(passwords.password)) return toast.error('Password must contain at least one lowercase letter')
+    if (!/[0-9]/.test(passwords.password)) return toast.error('Password must contain at least one number')
+    if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/;`]/.test(passwords.password)) {
+      return toast.error('Password must contain at least one special character')
+    }
     if (passwords.password !== passwords.confirm) return toast.error('Passwords do not match')
+    
     setLoading(true)
     try {
-      // Use OTP-based reset — send new password with verified email
+      // Use OTP-based reset — send new password with verified email and cryptographic reset token
       await axios.post(`${API}/auth/reset-password-otp`, {
         email,
         password: passwords.password,
+        token: resetToken,
       })
       setDone(true)
       toast.success('Password reset successfully!')

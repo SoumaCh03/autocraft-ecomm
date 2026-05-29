@@ -60,6 +60,16 @@ export default function AdminOrders() {
     }
   }
 
+  const setPaymentStatus = async (id, isPaid) => {
+    try {
+      await axios.put(`${API}/orders/${id}/pay-status`, { isPaid })
+      toast.success(`Payment status marked as ${isPaid ? 'Paid' : 'Unpaid'}`)
+      fetchOrders()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Payment status update failed')
+    }
+  }
+
   const updateReturnStatus = async (orderId, status) => {
     setReturnUpdating(`${orderId}-${status}`)
     try {
@@ -183,6 +193,7 @@ export default function AdminOrders() {
         orders={orders}
         loading={loading}
         updateStatus={updateStatus}
+        setPaymentStatus={setPaymentStatus}
         trackingForms={trackingForms}
         handleTrackingChange={handleTrackingChange}
         saveTracking={saveTracking}
