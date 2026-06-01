@@ -100,7 +100,8 @@ const productSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['exterior', 'interior', 'lighting', 'electronics', 'car-care', 'dashboard'],
+    trim: true,
+    lowercase: true,
   },
   carBrands: [{ type: String }],
   carModels: [{ type: String }],

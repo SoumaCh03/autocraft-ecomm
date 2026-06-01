@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import { Printer, Upload, Download } from 'lucide-react'
 import { downloadInvoice } from '../../utils/invoice'
 

@@ -5,10 +5,13 @@ import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
 import { useWishlist } from '../context/WishlistContext'
 import { useCart } from '../context/CartContext'
+import useCategories from '../hooks/useCategories'
+import { getCategoryDisplayName } from '../utils/categories'
 
 export default function Wishlist() {
   const { wishlist, loading, toggleWishlist } = useWishlist()
   const { addToCart } = useCart()
+  const { categories } = useCategories()
 
   const handleAddToCart = async (product, moveToCart = false) => {
     if (product.isOutOfStock || Number(product.stock || 0) <= 0) {
@@ -81,7 +84,7 @@ export default function Wishlist() {
                 </Link>
                 
                 <div className="p-4 flex flex-col flex-1">
-                  <p className="text-xs text-primary-500 capitalize mb-1">{product.category}</p>
+                  <p className="text-xs text-primary-500 capitalize mb-1">{getCategoryDisplayName(product.category, categories)}</p>
                   <Link to={`/product/${product._id}`} className="text-sm font-medium text-dark-text line-clamp-2 hover:text-primary-500 transition-colors">
                     {product.name}
                   </Link>
@@ -170,4 +173,3 @@ export default function Wishlist() {
     </>
   )
 }
-

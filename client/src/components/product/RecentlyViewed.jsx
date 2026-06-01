@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Star, ShoppingCart, Heart } from 'lucide-react'
+import { getCategoryDisplayName } from '../../utils/categories'
 
 export default function RecentlyViewed({
   products,
+  categories = [],
   isWishlisted,
   toggleWishlist,
   handleAddToCart
@@ -89,7 +91,7 @@ export default function RecentlyViewed({
                 to={`/product/${product._id}`}
                 className="text-sm text-primary-500 hover:text-primary-400"
               >
-                {product.category}
+                {getCategoryDisplayName(product.category, categories)}
               </Link>
 
               <Link

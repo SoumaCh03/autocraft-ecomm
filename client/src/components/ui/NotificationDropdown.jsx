@@ -1,7 +1,6 @@
-import { CheckCircle2, Trash2, Bell } from 'lucide-react';
+import { Trash2, Bell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNotifications } from '../../context/NotificationContext';
-import { useAuth } from '../../context/AuthContext';
 
 const notificationIcons = {
   new_order: '📦',
@@ -25,7 +24,6 @@ const notificationColors = {
 
 export default function NotificationDropdown({ notifications, onClose }) {
   const { markAsRead, markAllAsRead, deleteNotification, unreadCount } = useNotifications();
-  const { user } = useAuth();
 
   const getTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);

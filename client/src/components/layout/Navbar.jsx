@@ -8,6 +8,7 @@ import { useWishlist } from '../../context/WishlistContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import NotificationBell from '../ui/NotificationBell'
 import logo from '../../assets/logo.png'
+import useCategories from '../../hooks/useCategories'
 
 const CAR_BRANDS = {
   'Maruti Suzuki': ['Swift', 'Baleno', 'Brezza', 'Ertiga', 'Fronx', 'Wagon R' , 'Grand Vitara', 'Jimny', 'Ignis' , 'XL6'],
@@ -23,15 +24,6 @@ const CAR_BRANDS = {
   'Volkswagen':    ['Taigun', 'Polo', 'Vento', 'T-Roc', 'Passat', 'Tiguan'],
 }
 
-const CATEGORIES = [
-  { label: 'Exterior',    slug: 'exterior' },
-  { label: 'Interior',    slug: 'interior' },
-  { label: 'Lighting',    slug: 'lighting' },
-  { label: 'Electronics', slug: 'electronics' },
-  { label: 'Car Care',    slug: 'car-care' },
-  { label: 'Dashboard',   slug: 'dashboard' },
-]
-
 export default function Navbar() {
   const { isDark, toggleTheme } = useTheme()
   const { user, logout }        = useAuth()
@@ -46,6 +38,7 @@ export default function Navbar() {
   const [userMenuOpen,  setUserMenuOpen]  = useState(false)
   const [searchOpen,    setSearchOpen]    = useState(false)
   const [searchQuery,   setSearchQuery]   = useState('')
+  const { categories } = useCategories()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -174,13 +167,13 @@ export default function Navbar() {
                       transition={{ duration: 0.15 }}
                       className="absolute top-full left-0 mt-1 w-48 glass rounded-2xl p-3 shadow-2xl shadow-black/50 border border-dark-border"
                     >
-                      {CATEGORIES.map((cat) => (
+                      {categories.map((cat) => (
                         <Link
                           key={cat.slug}
                           to={`/shop/${cat.slug}`}
                           className="block px-3 py-2 text-sm text-dark-muted hover:text-dark-text hover:bg-dark-border/50 rounded-lg transition-colors"
                         >
-                          {cat.label}
+                          {cat.label || cat.name}
                         </Link>
                       ))}
                     </motion.div>
@@ -317,14 +310,14 @@ export default function Navbar() {
               <Link to="/shop" onClick={() => setMobileOpen(false)} className="block py-2 text-dark-muted hover:text-dark-text">All Products</Link>
               <hr className="border-dark-border" />
               <p className="text-xs text-dark-muted uppercase tracking-widest pt-1">By Category</p>
-              {CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <Link
                   key={cat.slug}
                   to={`/shop/${cat.slug}`}
                   onClick={() => setMobileOpen(false)}
                   className="block py-1.5 text-sm text-dark-muted hover:text-dark-text pl-2"
                 >
-                  {cat.label}
+                  {cat.label || cat.name}
                 </Link>
               ))}
               <hr className="border-dark-border" />

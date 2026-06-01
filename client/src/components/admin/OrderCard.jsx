@@ -7,7 +7,6 @@ const STATUS_OPTIONS = ['pending', 'processing', 'shipped', 'delivered', 'cancel
 
 export default function OrderCard({ order, updateStatus, setPaymentStatus, trackingForms, handleTrackingChange, saveTracking, trackingSaving, returnNotes, setReturnNotes, updateReturnStatus, returnUpdating, downloadShippingPDF, handleBillUpload, uploading, fileInputRef, toast }) {
   const hasReturn = order.returnRequest?.requested
-  const returnRequests = order.returnRequest?.status === 'requested' ? 1 : 0
 
   return (
     <div className={`card p-5 ${hasReturn ? 'border-blue-500/30' : ''}`}>

@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Star, ShoppingCart, Heart } from 'lucide-react'
+import { getCategoryDisplayName } from '../../utils/categories'
 
-export default function ShopProductGrid({ products, loading, isWishlisted, toggleWishlist, handleAddToCart }) {
+export default function ShopProductGrid({ products, loading, categories = [], isWishlisted, toggleWishlist, handleAddToCart }) {
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -67,7 +68,7 @@ export default function ShopProductGrid({ products, loading, isWishlisted, toggl
 
           <div className="p-4">
             <Link to={`/product/${product._id}`} className="text-sm text-primary-500 hover:text-primary-400">
-              {product.category}
+              {getCategoryDisplayName(product.category, categories)}
             </Link>
             <Link to={`/product/${product._id}`} className="font-semibold text-dark-text line-clamp-2 hover:text-primary-500 transition-colors mt-1">
               {product.name}

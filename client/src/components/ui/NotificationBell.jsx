@@ -1,4 +1,4 @@
-import { Bell, X } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotifications } from '../../context/NotificationContext';

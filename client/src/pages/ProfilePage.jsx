@@ -10,6 +10,8 @@ import { Helmet } from 'react-helmet-async'
 import BASE_URL from '../utils/api'; // Adjust the import path as needed
 
 const API = BASE_URL; // from utils/api.js
+const SPECIAL_CHARS = '!@#$%^&*(),.?":{}|<>_-+=[]\\/;`'
+const hasSpecialChar = (value) => [...SPECIAL_CHARS].some((char) => value.includes(char))
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth()
@@ -36,7 +38,7 @@ export default function ProfilePage() {
   const hasUpper = /[A-Z]/.test(passForm.newPassword)
   const hasLower = /[a-z]/.test(passForm.newPassword)
   const hasNumber = /[0-9]/.test(passForm.newPassword)
-  const hasSpecial = /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/;`]/.test(passForm.newPassword)
+  const hasSpecial = hasSpecialChar(passForm.newPassword)
   const strengthCount = [hasMinLength, hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })

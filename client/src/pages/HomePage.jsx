@@ -7,6 +7,8 @@ import toast from 'react-hot-toast'
 import axios from 'axios'
 import BASE_URL from '../utils/api'
 import { useWishlist } from '../context/WishlistContext'
+import useCategories from '../hooks/useCategories'
+import { getCategoryDisplayName } from '../utils/categories'
 
 const API = BASE_URL
 
@@ -17,7 +19,7 @@ const FEATURES = [
   { icon: Headphones, title: '24/7 Support',  desc: 'Always here to help' },
 ]
 
-const CATEGORIES = [
+const LEGACY_CATEGORIES = [
   { name: 'Exterior',    emoji: '🚗', slug: 'exterior',    desc: 'Body kits, wraps & more' },
   { name: 'Interior',    emoji: '🪑', slug: 'interior',    desc: 'Seat covers, mats & more' },
   { name: 'Lighting',    emoji: '💡', slug: 'lighting',    desc: 'LED, HID & ambient lights' },
@@ -65,6 +67,8 @@ export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState([])
   const [featuredLoading, setFeaturedLoading] = useState(true)
   const { isWishlisted, toggleWishlist } = useWishlist()
+  const { categories } = useCategories()
+  const homepageCategories = categories.length ? categories : LEGACY_CATEGORIES
 
   useEffect(() => {
     const loginStatus = searchParams.get('login')
@@ -185,12 +189,12 @@ export default function HomePage() {
         </motion.div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {CATEGORIES.map((cat, i) => (
+          {homepageCategories.map((cat, i) => (
             <motion.div key={cat.slug} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ duration: 0.4, delay: i * 0.07 }}>
               <Link to={`/shop/${cat.slug}`} className="card p-5 text-center hover:border-primary-500/50 hover:bg-primary-500/5 transition-all duration-300 group block">
-                <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">{cat.emoji}</div>
-                <p className="font-semibold text-dark-text text-sm mb-1">{cat.name}</p>
-                <p className="text-dark-muted text-xs">{cat.desc}</p>
+                <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">{cat.icon || cat.emoji || 'AC'}</div>
+                <p className="font-semibold text-dark-text text-sm mb-1">{cat.label || cat.name}</p>
+                <p className="text-dark-muted text-xs">{cat.desc || cat.description}</p>
               </Link>
             </motion.div>
           ))}
@@ -273,7 +277,7 @@ export default function HomePage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-dark-card/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
                   <div className="p-4">
-                    <p className="text-xs text-primary-500 mb-1 capitalize">{product.category}</p>
+                    <p className="text-xs text-primary-500 mb-1 capitalize">{getCategoryDisplayName(product.category, homepageCategories)}</p>
                     <p className="font-medium text-dark-text text-sm mb-1 line-clamp-2">{product.name}</p>
                     <div className="flex items-center gap-1 mb-2">
                       {[...Array(5)].map((_, j) => (

@@ -1,6 +1,6 @@
 import ProductTable from './ProductTable'
 
-export default function ProductList({ loading, products, openEdit, toggleStock, handleDelete }) {
+export default function ProductList({ loading, products, categories, openEdit, toggleStock, handleDelete }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -19,5 +19,5 @@ export default function ProductList({ loading, products, openEdit, toggleStock, 
     )
   }
 
-  return <ProductTable products={products} openEdit={openEdit} toggleStock={toggleStock} handleDelete={handleDelete} />
+  return <ProductTable products={products} categories={categories} openEdit={openEdit} toggleStock={toggleStock} handleDelete={handleDelete} />
 }

@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import axios from 'axios';
 import BASE_URL from '../utils/api';
 import { useAuth } from './AuthContext';
-import { socketConnect, socketDisconnect, on, off, emit, isConnected } from '../utils/socketClient';
+import { socketConnect, socketDisconnect, on, off, emit } from '../utils/socketClient';
 
 const NotificationContext = createContext();
 const API = BASE_URL;

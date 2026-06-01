@@ -6,10 +6,33 @@ import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import { notifyAllAdmins } from '../utils/notificationEmitter.js';
 import variantRoutes from './variantRoutes.js';
 import { localCache } from '../utils/cache.js';
+import Category, { ensureDefaultCategories, slugifyCategory } from '../models/categoryModel.js';
 
 const router = express.Router();
 
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+
+const validateCategoryPayload = async (body, { required = true } = {}) => {
+  if (body.category === undefined && !required) {
+    return {};
+  }
+
+  const categorySlug = slugifyCategory(body.category);
+
+  if (!categorySlug) {
+    return { error: 'Category is required' };
+  }
+
+  await ensureDefaultCategories();
+
+  const category = await Category.findOne({ slug: categorySlug });
+  if (!category) {
+    return { error: 'Please choose a valid product category' };
+  }
+
+  body.category = category.slug;
+  return { category };
+};
 
 const notifyBackInStockSubscribers = async (product) => {
   const waitingList = product.notifyList?.filter((n) => n.status === 'waiting') || [];
@@ -218,6 +241,9 @@ router.get('/:id', async (req, res) => {
 // POST create product (admin only)
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
+    const { error } = await validateCategoryPayload(req.body);
+    if (error) return res.status(400).json({ message: error });
+
     const product = await Product.create(req.body);
     localCache.clearByPrefix('products'); // Invalidate product caches
     res.status(201).json({ product });
@@ -229,6 +255,9 @@ router.post('/', protect, adminOnly, async (req, res) => {
 // PUT update product (admin only)
 router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
+    const { error } = await validateCategoryPayload(req.body, { required: false });
+    if (error) return res.status(400).json({ message: error });
+
     const previousProduct = await Product.findById(req.params.id);
     if (!previousProduct) return res.status(404).json({ message: 'Product not found' });
 

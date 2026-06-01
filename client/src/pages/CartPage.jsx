@@ -8,12 +8,15 @@ import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { Helmet } from 'react-helmet-async'
 import BASE_URL from '../utils/api'
+import useCategories from '../hooks/useCategories'
+import { getCategoryDisplayName } from '../utils/categories'
 
 const API = BASE_URL
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQty, cartTotal, clearCart } = useCart()
   const { user } = useAuth()
+  const { categories } = useCategories()
   const navigate = useNavigate()
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState(null)
@@ -109,7 +112,7 @@ export default function CartPage() {
                   {item.selectedVariant && (
                     <p className="text-xs text-primary-400 mt-0.5">Variant: {item.selectedVariant.name}</p>
                   )}
-                  <p className="text-xs text-primary-500 capitalize mt-0.5">{item.category}</p>
+                  <p className="text-xs text-primary-500 capitalize mt-0.5">{getCategoryDisplayName(item.category, categories)}</p>
                   <p className="font-bold text-dark-text mt-1">Rs.{Number(item.price || 0).toLocaleString('en-IN')}</p>
                   {Number(item.stock || 0) > 0 && Number(item.stock || 0) <= 5 && (
                     <p className="text-xs text-orange-400 mt-1">Only {item.stock} left</p>

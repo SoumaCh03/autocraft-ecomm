@@ -12,6 +12,8 @@ import Skeleton from '../components/ui/Skeleton'
 import ProductSEO from '../components/product/ProductSEO'
 import ProductVariants from '../components/product/ProductVariants'
 import RecentlyViewed from '../components/product/RecentlyViewed'
+import useCategories from '../hooks/useCategories'
+import { getCategoryDisplayName } from '../utils/categories'
 
 const API = BASE_URL
 
@@ -21,6 +23,7 @@ export default function ProductPage() {
   const { addToCart } = useCart()
   const { user } = useAuth()
   const { isWishlisted, toggleWishlist } = useWishlist()
+  const { categories } = useCategories()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -310,7 +313,7 @@ export default function ProductPage() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-            <span className="text-xs text-primary-500 uppercase tracking-widest font-medium">{product.category}</span>
+            <span className="text-xs text-primary-500 uppercase tracking-widest font-medium">{getCategoryDisplayName(product.category, categories)}</span>
             <div className="flex items-start justify-between gap-4 mt-2 mb-4">
               <h1 className="font-display text-3xl font-bold text-dark-text">{product.name}</h1>
               <button
@@ -500,11 +503,12 @@ export default function ProductPage() {
           )}
         </div>
 
-        <RecentlyViewed
-          products={recentlyViewed}
-          isWishlisted={isWishlisted}
-          toggleWishlist={toggleWishlist}
-          handleAddToCart={handleRecentlyViewedAddToCart}
+          <RecentlyViewed
+            products={recentlyViewed}
+            categories={categories}
+            isWishlisted={isWishlisted}
+            toggleWishlist={toggleWishlist}
+            handleAddToCart={handleRecentlyViewedAddToCart}
         />
       </div>
     </>

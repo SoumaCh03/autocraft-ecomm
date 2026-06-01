@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { SlidersHorizontal, ChevronDown } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
@@ -14,10 +13,12 @@ import ShopProductGrid from '../components/shop/ShopProductGrid'
 import ShopPagination from '../components/shop/ShopPagination'
 import ShopActiveFilters from '../components/shop/ShopActiveFilters'
 import ShopMobileFilters from '../components/shop/ShopMobileFilters'
+import useCategories from '../hooks/useCategories'
+import { getCategoryDisplayName } from '../utils/categories'
 
 const API = BASE_URL
 
-const SORT_OPTIONS = [
+export const SORT_OPTIONS = [
   { label: 'Latest',             value: '' },
   { label: 'Price: Low → High',  value: 'price-asc' },
   { label: 'Price: High → Low',  value: 'price-desc' },
@@ -31,6 +32,7 @@ export default function ShopPage() {
   const navigate = useNavigate()
   const { addToCart } = useCart()
   const { isWishlisted, toggleWishlist } = useWishlist()
+  const { categories } = useCategories()
 
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -160,7 +162,7 @@ export default function ShopPage() {
   const activeFilters = [
     brand && { label: `Brand: ${brand}`, clear: 'brand' },
     model && { label: `Model: ${model}`, clear: 'model' },
-    category && { label: `Cat: ${category}`, clear: 'category' },
+    category && { label: `Cat: ${getCategoryDisplayName(category, categories)}`, clear: 'category' },
     search && { label: `Search: "${search}"`, clear: 'search' },
     (priceMin || priceMax) && { label: `Price: ₹${priceMin || '0'}-${priceMax || '∞'}`, clear: 'price' },
     ratingMin && { label: `Rating: ★${ratingMin}+`, clear: 'rating' },
@@ -174,12 +176,12 @@ export default function ShopPage() {
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
-        <ShopHeader brand={brand} model={model} category={category} total={total} sort={sort} searchParams={searchParams} setSearchParams={setSearchParams} setPage={setPage} />
+        <ShopHeader brand={brand} model={model} category={category} categories={categories} total={total} sort={sort} searchParams={searchParams} setSearchParams={setSearchParams} setPage={setPage} />
 
         <ShopActiveFilters activeFilters={activeFilters} clearFilter={clearFilter} clearAllFilters={clearAllFilters} />
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {showFilters && <ShopFilters category={category} priceMin={priceMin} priceMax={priceMax} ratingMin={ratingMin} inStockOnly={inStockOnly} searchParams={searchParams} setSearchParams={setSearchParams} goToCategory={goToCategory} setPage={setPage} />}
+          {showFilters && <ShopFilters category={category} categories={categories} priceMin={priceMin} priceMax={priceMax} ratingMin={ratingMin} inStockOnly={inStockOnly} searchParams={searchParams} setSearchParams={setSearchParams} goToCategory={goToCategory} setPage={setPage} />}
 
           <div className="md:col-span-3">
             {!showFilters && (
@@ -191,9 +193,9 @@ export default function ShopPage() {
               </button>
             )}
 
-            <ShopMobileFilters filtersOpen={filtersOpen} category={category} ratingMin={ratingMin} searchParams={searchParams} goToCategory={goToCategory} setSearchParams={setSearchParams} setPage={setPage} />
+            <ShopMobileFilters filtersOpen={filtersOpen} category={category} categories={categories} ratingMin={ratingMin} searchParams={searchParams} goToCategory={goToCategory} setSearchParams={setSearchParams} setPage={setPage} />
 
-            <ShopProductGrid products={products} loading={loading} isWishlisted={isWishlisted} toggleWishlist={toggleWishlist} handleAddToCart={handleAddToCart} />
+            <ShopProductGrid products={products} loading={loading} categories={categories} isWishlisted={isWishlisted} toggleWishlist={toggleWishlist} handleAddToCart={handleAddToCart} />
 
             {!loading && products.length > 0 && (
               <ShopPagination pages={pages} page={page} setPage={setPage} />

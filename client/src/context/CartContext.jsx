@@ -25,7 +25,6 @@ export const CartProvider = ({ children }) => {
     const safeLimitedQty = Math.max(1, Math.min(safeQty, variantStock));
 
     setCartItems(prev => {
-      const cartKey = selectedVariant ? `${product._id}-${selectedVariant._id}` : product._id;
       const exists = prev.find(i => {
         if (selectedVariant) {
           return i._id === product._id && i.selectedVariant?._id === selectedVariant._id;

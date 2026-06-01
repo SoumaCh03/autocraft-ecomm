@@ -1,17 +1,9 @@
 import { motion } from 'framer-motion'
 
-const CATEGORIES = [
-  { label: 'All',         slug: '' },
-  { label: 'Exterior',    slug: 'exterior' },
-  { label: 'Interior',    slug: 'interior' },
-  { label: 'Lighting',    slug: 'lighting' },
-  { label: 'Electronics', slug: 'electronics' },
-  { label: 'Car Care',    slug: 'car-care' },
-  { label: 'Dashboard',   slug: 'dashboard' },
-]
-
-export default function ShopMobileFilters({ filtersOpen, category, ratingMin, searchParams, goToCategory, setSearchParams, setPage }) {
+export default function ShopMobileFilters({ filtersOpen, category, categories = [], ratingMin, searchParams, goToCategory, setSearchParams, setPage }) {
   if (!filtersOpen) return null
+
+  const categoryOptions = [{ label: 'All', slug: '' }, ...categories]
 
   return (
     <motion.div
@@ -27,8 +19,8 @@ export default function ShopMobileFilters({ filtersOpen, category, ratingMin, se
           onChange={(e) => goToCategory(e.target.value)}
           className="input-field text-sm py-1.5 w-full"
         >
-          {CATEGORIES.map((cat) => (
-            <option key={cat.slug} value={cat.slug}>{cat.label}</option>
+          {categoryOptions.map((cat) => (
+            <option key={cat.slug} value={cat.slug}>{cat.label || cat.name}</option>
           ))}
         </select>
       </div>

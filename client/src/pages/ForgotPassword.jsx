@@ -9,6 +9,8 @@ import { Helmet } from 'react-helmet-async'
 import BASE_URL from '../utils/api'; //adjust the import path as needed
 
 const API = BASE_URL; // from utils/api.js
+const SPECIAL_CHARS = '!@#$%^&*(),.?":{}|<>_-+=[]\\/;`'
+const hasSpecialChar = (value) => [...SPECIAL_CHARS].some((char) => value.includes(char))
 
 export default function ForgotPassword() {
   const navigate = useNavigate()
@@ -61,7 +63,7 @@ export default function ForgotPassword() {
     if (!/[A-Z]/.test(passwords.password)) return toast.error('Password must contain at least one uppercase letter')
     if (!/[a-z]/.test(passwords.password)) return toast.error('Password must contain at least one lowercase letter')
     if (!/[0-9]/.test(passwords.password)) return toast.error('Password must contain at least one number')
-    if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/;`]/.test(passwords.password)) {
+    if (!hasSpecialChar(passwords.password)) {
       return toast.error('Password must contain at least one special character')
     }
     if (passwords.password !== passwords.confirm) return toast.error('Passwords do not match')

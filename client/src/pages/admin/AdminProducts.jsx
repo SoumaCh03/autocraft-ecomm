@@ -5,6 +5,8 @@ import BASE_URL from '../../utils/api'
 import ProductHeader from '../../components/admin/ProductHeader'
 import ProductForm from '../../components/admin/ProductForm'
 import ProductList from '../../components/admin/ProductList'
+import CategoryManager from '../../components/admin/CategoryManager'
+import { FALLBACK_CATEGORIES, normalizeCategories } from '../../utils/categories'
 
 const API = BASE_URL
 axios.defaults.withCredentials = true
@@ -31,6 +33,12 @@ const EMPTY = {
   variants: [],
 }
 
+const createEmptyProduct = (categories = FALLBACK_CATEGORIES) => ({
+  ...EMPTY,
+  category: categories[0]?.slug || 'exterior',
+  variants: [],
+})
+
 export default function AdminProducts() {
   const [products,     setProducts]     = useState([])
   const [loading,      setLoading]      = useState(true)
@@ -38,6 +46,10 @@ export default function AdminProducts() {
   const [editing,      setEditing]      = useState(null)
   const [form,         setForm]         = useState(EMPTY)
   const [saving,       setSaving]       = useState(false)
+  const [categories,   setCategories]   = useState(FALLBACK_CATEGORIES)
+  const [categoryForm, setCategoryForm] = useState({ name: '', description: '', icon: '' })
+  const [savingCategory, setSavingCategory] = useState(false)
+  const [deletingCategory, setDeletingCategory] = useState('')
 
   // Image state
   const [imageMode,    setImageMode]   = useState('url')  // 'url' or 'upload'
@@ -46,7 +58,10 @@ export default function AdminProducts() {
   const [uploading,    setUploading]   = useState(false)
   const fileRef = useRef()
 
-  useEffect(() => { fetchProducts() }, [])
+  useEffect(() => {
+    fetchProducts()
+    fetchCategories()
+  }, [])
 
   const fetchProducts = async () => {
     setLoading(true)
@@ -60,16 +75,63 @@ export default function AdminProducts() {
     }
   }
 
+  const fetchCategories = async () => {
+    try {
+      const { data } = await axios.get(`${API}/categories/admin`)
+      const normalized = normalizeCategories(data.categories || [])
+      setCategories(normalized.length ? normalized : FALLBACK_CATEGORIES)
+    } catch {
+      setCategories(FALLBACK_CATEGORIES)
+      toast.error('Failed to load categories')
+    }
+  }
+
   const openAdd = () => {
     setEditing(null)
-    setForm({
-      ...EMPTY,
-      variants: [],
-    })
+    setForm(createEmptyProduct(categories))
     setImageUrl('')
     setUploadedImgs([])
     setImageMode('url')
     setShowForm(true)
+  }
+
+  const handleCreateCategory = async (e) => {
+    e.preventDefault()
+
+    if (!categoryForm.name.trim()) {
+      return toast.error('Category name is required')
+    }
+
+    setSavingCategory(true)
+    try {
+      await axios.post(`${API}/categories`, {
+        name: categoryForm.name.trim(),
+        description: categoryForm.description.trim(),
+        icon: categoryForm.icon.trim(),
+      })
+      toast.success('Category created')
+      setCategoryForm({ name: '', description: '', icon: '' })
+      await fetchCategories()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Category save failed')
+    } finally {
+      setSavingCategory(false)
+    }
+  }
+
+  const handleDeleteCategory = async (category) => {
+    if (!window.confirm(`Delete category "${category.label || category.name}"?`)) return
+
+    setDeletingCategory(category._id)
+    try {
+      await axios.delete(`${API}/categories/${category._id}`)
+      toast.success('Category deleted')
+      await fetchCategories()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Category delete failed')
+    } finally {
+      setDeletingCategory('')
+    }
   }
 
   const openEdit = (p) => {
@@ -270,6 +332,16 @@ export default function AdminProducts() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
       <ProductHeader productsLength={products.length} openAdd={openAdd} />
+      <CategoryManager
+        categories={categories}
+        categoryForm={categoryForm}
+        setCategoryForm={setCategoryForm}
+        savingCategory={savingCategory}
+        deletingCategory={deletingCategory}
+        onCreateCategory={handleCreateCategory}
+        onDeleteCategory={handleDeleteCategory}
+        onRefresh={fetchCategories}
+      />
       <ProductForm
         showForm={showForm}
         setShowForm={setShowForm}
@@ -288,10 +360,12 @@ export default function AdminProducts() {
         removeUploadedImg={removeUploadedImg}
         handleSave={handleSave}
         saving={saving}
+        categories={categories}
       />
       <ProductList
         loading={loading}
         products={products}
+        categories={categories}
         openEdit={openEdit}
         toggleStock={toggleStock}
         handleDelete={handleDelete}

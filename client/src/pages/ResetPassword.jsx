@@ -9,6 +9,8 @@ import { Helmet } from 'react-helmet-async'
 import BASE_URL from '../utils/api'; // adjust the path as needed
 
 const API = BASE_URL;
+const SPECIAL_CHARS = '!@#$%^&*(),.?":{}|<>_-+=[]\\/;`'
+const hasSpecialChar = (value) => [...SPECIAL_CHARS].some((char) => value.includes(char))
 
 export default function ResetPassword() {
   const { token }  = useParams()
@@ -25,7 +27,7 @@ export default function ResetPassword() {
     if (!/[A-Z]/.test(form.password)) return toast.error('Password must contain at least one uppercase letter')
     if (!/[a-z]/.test(form.password)) return toast.error('Password must contain at least one lowercase letter')
     if (!/[0-9]/.test(form.password)) return toast.error('Password must contain at least one number')
-    if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/;`]/.test(form.password)) {
+    if (!hasSpecialChar(form.password)) {
       return toast.error('Password must contain at least one special character')
     }
     if (form.password !== form.confirm) return toast.error('Passwords do not match')

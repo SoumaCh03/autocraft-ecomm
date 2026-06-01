@@ -1,4 +1,5 @@
 import { SlidersHorizontal } from 'lucide-react'
+import { getCategoryDisplayName } from '../../utils/categories'
 
 const SORT_OPTIONS = [
   { label: 'Latest',             value: '' },
@@ -8,22 +9,7 @@ const SORT_OPTIONS = [
   { label: 'Most Reviewed',      value: 'relevance' },
 ]
 
-const CATEGORIES = [
-  { label: 'All',         slug: '' },
-  { label: 'Exterior',    slug: 'exterior' },
-  { label: 'Interior',    slug: 'interior' },
-  { label: 'Lighting',    slug: 'lighting' },
-  { label: 'Electronics', slug: 'electronics' },
-  { label: 'Car Care',    slug: 'car-care' },
-  { label: 'Dashboard',   slug: 'dashboard' },
-]
-
-const formatCategoryTitle = (slug) => {
-  const match = CATEGORIES.find((cat) => cat.slug === slug)
-  return match?.label || slug.charAt(0).toUpperCase() + slug.slice(1)
-}
-
-export default function ShopHeader({ brand, model, category, total, sort, searchParams, setSearchParams, setPage }) {
+export default function ShopHeader({ brand, model, category, categories = [], total, sort, searchParams, setSearchParams, setPage }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
       <div>
@@ -31,7 +17,7 @@ export default function ShopHeader({ brand, model, category, total, sort, search
           {brand
             ? `${brand} ${model ? `— ${model}` : ''}`
             : category
-              ? formatCategoryTitle(category)
+              ? getCategoryDisplayName(category, categories)
               : 'All Products'}
         </h1>
         <p className="text-dark-muted text-sm mt-1">{total} products found</p>

@@ -1,4 +1,5 @@
 import { Pencil, Trash2, PackageX, Package } from 'lucide-react'
+import { getCategoryDisplayName } from '../../utils/categories'
 
 const getUsableVariants = (variants = []) =>
   variants.filter((variant) => variant.name?.trim())
@@ -14,7 +15,7 @@ const getDisplayStock = (product) => {
   )
 }
 
-export default function ProductTable({ products, openEdit, toggleStock, handleDelete }) {
+export default function ProductTable({ products, categories = [], openEdit, toggleStock, handleDelete }) {
   return (
     <div className="card overflow-hidden">
       <div className="overflow-x-auto">
@@ -51,7 +52,7 @@ export default function ProductTable({ products, openEdit, toggleStock, handleDe
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-xs bg-primary-500/10 text-primary-500 px-2 py-1 rounded-full capitalize">{p.category}</span>
+                    <span className="text-xs bg-primary-500/10 text-primary-500 px-2 py-1 rounded-full capitalize">{getCategoryDisplayName(p.category, categories)}</span>
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-sm font-semibold text-dark-text">Rs.{p.price.toLocaleString()}</p>

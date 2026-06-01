@@ -1,17 +1,9 @@
 import { motion } from 'framer-motion'
 import { Star } from 'lucide-react'
 
-const CATEGORIES = [
-  { label: 'All',         slug: '' },
-  { label: 'Exterior',    slug: 'exterior' },
-  { label: 'Interior',    slug: 'interior' },
-  { label: 'Lighting',    slug: 'lighting' },
-  { label: 'Electronics', slug: 'electronics' },
-  { label: 'Car Care',    slug: 'car-care' },
-  { label: 'Dashboard',   slug: 'dashboard' },
-]
+export default function ShopFilters({ category, categories = [], priceMin, priceMax, ratingMin, inStockOnly, searchParams, setSearchParams, goToCategory, setPage }) {
+  const categoryOptions = [{ label: 'All', slug: '' }, ...categories]
 
-export default function ShopFilters({ category, priceMin, priceMax, ratingMin, inStockOnly, searchParams, setSearchParams, goToCategory, setPage }) {
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -25,13 +17,13 @@ export default function ShopFilters({ category, priceMin, priceMax, ratingMin, i
         <div className="mb-6 pb-6 border-b border-dark-border">
           <p className="text-xs font-semibold text-dark-muted mb-3 uppercase">Category</p>
           <div className="space-y-2">
-            {CATEGORIES.map((cat) => (
+            {categoryOptions.map((cat) => (
               <button
                 key={cat.slug}
                 onClick={() => goToCategory(cat.slug)}
                 className={`block text-sm transition-colors ${category === cat.slug ? 'text-primary-500 font-semibold' : 'text-dark-muted hover:text-dark-text'}`}
               >
-                {cat.label}
+                {cat.label || cat.name}
               </button>
             ))}
           </div>

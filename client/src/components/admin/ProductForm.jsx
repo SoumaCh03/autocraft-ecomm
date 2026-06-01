@@ -2,9 +2,9 @@ import { X, Upload, Link2 } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import BASE_URL from '../../utils/api'
+import { formatCategoryName } from '../../utils/categories'
 
 const API = BASE_URL
-const CATEGORIES = ['exterior', 'interior', 'lighting', 'electronics', 'car-care', 'dashboard']
 
 const getUsableVariants = (variants = []) =>
   variants.filter((variant) => variant.name?.trim())
@@ -33,6 +33,7 @@ export default function ProductForm({
   removeUploadedImg,
   handleSave,
   saving,
+  categories,
 }) {
   const addVariant = () => {
     setForm((prev) => ({
@@ -154,6 +155,8 @@ export default function ProductForm({
   const displayedStock = hasVariants
     ? getVariantStockTotal(form.variants)
     : form.stock
+  const categoryOptions = categories?.length ? categories : []
+  const hasCurrentCategory = categoryOptions.some((category) => category.slug === form.category)
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -188,7 +191,14 @@ export default function ProductForm({
             <div>
               <label className="block text-sm text-dark-muted mb-1">Category *</label>
               <select name="category" value={form.category} onChange={handleChange} className="input-field">
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {!hasCurrentCategory && form.category && (
+                  <option value={form.category}>{formatCategoryName(form.category)}</option>
+                )}
+                {categoryOptions.map((category) => (
+                  <option key={category.slug} value={category.slug}>
+                    {category.label || category.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -501,4 +511,3 @@ export default function ProductForm({
     </div>
   )
 }
-
