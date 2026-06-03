@@ -5,12 +5,15 @@ let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
 const getServerUrl = () => {
+  if (import.meta.env.PROD) {
+    return 'https://autocraft-backend.onrender.com';
+  }
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   // Remove /api suffix if present since socket.io connects to the server root
   return apiUrl.replace(/\/api\/?$/, '');
 };
 
-export const socketConnect = (user) => {
+export const socketConnect = (user, token) => {
   if (socket?.connected || socket?.connecting) {
     if (import.meta.env.DEV) {
       console.log('[Socket] Already connected or connecting');
@@ -27,6 +30,9 @@ export const socketConnect = (user) => {
 
   try {
     socket = io(getServerUrl(), {
+      auth: {
+        token: token
+      },
       withCredentials: true,
       transports: ['websocket', 'polling'],
       reconnection: true,

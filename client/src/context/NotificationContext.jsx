@@ -8,7 +8,7 @@ const NotificationContext = createContext();
 const API = BASE_URL;
 
 export const NotificationProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -112,7 +112,7 @@ export const NotificationProvider = ({ children }) => {
     socketInitializedRef.current = true;
 
     // Connect socket
-    const socket = socketConnect(user);
+    const socket = socketConnect(user, token);
 
     if (socket) {
       const handleConnect = () => {

@@ -22,6 +22,7 @@ export const protect = async (req, res, next) => {
       }
 
       req.user = user;
+      req.token = token;
       return next();
     } catch (err) {
       // Access token is expired/invalid, try refresh token
@@ -69,9 +70,10 @@ const handleTokenRefresh = async (req, res, next) => {
     });
 
     // Generate new access token and rotated refresh token
-    await generateToken(res, user);
+    const newToken = await generateToken(res, user);
 
     req.user = user;
+    req.token = newToken;
     return next();
   } catch (err) {
     console.log('REFRESH TOKEN ERROR:', err.message);

@@ -163,7 +163,7 @@ export const register = async (req, res) => {
 
     const user = await User.create({ name, email, password, phone, isVerified: true });
 
-    await generateToken(res, user);
+    const token = await generateToken(res, user);
 
     // Welcome email
     try {
@@ -186,6 +186,7 @@ export const register = async (req, res) => {
 
     res.status(201).json({
       message: 'Account created successfully',
+      token,
       user: {
         _id:   user._id,
         name:  user.name,
@@ -219,10 +220,11 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    await generateToken(res, user);
+    const token = await generateToken(res, user);
 
     res.json({
       message: 'Login successful',
+      token,
       user: {
         _id:   user._id,
         name:  user.name,
@@ -264,7 +266,10 @@ export const logout = async (req, res) => {
 export const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    res.json({ user });
+    res.json({
+      user,
+      token: req.token,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -10,6 +10,7 @@ const api = axios.create({
 
 export const AuthProvider = ({ children }) => {
   const [user,    setUser]    = useState(null);
+  const [token,   setToken]   = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,6 +19,7 @@ export const AuthProvider = ({ children }) => {
       const { data } = await api.get('/auth/me');
 
       setUser(data.user);
+      setToken(data.token);
     } catch (error) {
       // 401 is expected when user is not logged in
       if (error.response?.status !== 401) {
@@ -25,6 +27,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       setUser(null);
+      setToken(null);
     } finally {
       setLoading(false);
     }
@@ -36,22 +39,25 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
     setUser(data.user);
+    setToken(data.token);
     return data;
   };
 
   const logout = async () => {
     await api.post('/auth/logout');
     setUser(null);
+    setToken(null);
   };
 
   const register = async (formData) => {
     const { data } = await api.post('/auth/register', formData);
     setUser(data.user);
+    setToken(data.token);
     return data;
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register, setUser, api }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, register, setUser, setToken, api }}>
       {children}
     </AuthContext.Provider>
   );
