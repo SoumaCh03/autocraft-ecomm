@@ -4,10 +4,24 @@ import { CheckCircle, Package, ArrowRight, Download } from 'lucide-react'
 import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
 import { downloadInvoice } from '../utils/invoice'
+import { useEffect } from 'react'
+import { trackEvent } from '../utils/analytics'
 
 export default function OrderSuccess() {
   const { state } = useLocation()
   const order     = state?.order
+
+  useEffect(() => {
+    if (order) {
+      trackEvent('order_success', {
+        orderId: order._id,
+        totalPrice: order.totalPrice,
+        paymentMethod: order.paymentMethod,
+        couponCode: order.coupon?.code || order.couponCode || '',
+        itemsCount: order.items?.length || 0,
+      })
+    }
+  }, [order])
 
   return (
     <>
@@ -60,4 +74,3 @@ export default function OrderSuccess() {
     </>
   )
 }
-

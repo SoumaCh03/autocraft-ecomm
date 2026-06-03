@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { trackEvent } from '../utils/analytics';
 
 const CartContext = createContext();
 
@@ -42,6 +43,14 @@ export const CartProvider = ({ children }) => {
       }
 
       return [...prev, { ...product, qty: safeLimitedQty, selectedVariant }];
+    });
+
+    // Track eCommerce add to cart telemetry
+    trackEvent('add_to_cart', {
+      productId: product._id,
+      name: product.name,
+      price: product.price,
+      qty: safeLimitedQty,
     });
 
     return true;

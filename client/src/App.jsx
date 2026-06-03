@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { useTheme } from './context/ThemeContext'
 import { useEffect, lazy, Suspense } from 'react'
+import useAnalytics from './hooks/useAnalytics'
 
 // Static layout components & guards
 import Navbar from './components/layout/Navbar'
@@ -31,6 +32,7 @@ const Wishlist       = lazy(() => import('./pages/Wishlist'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const AdminProducts  = lazy(() => import('./pages/admin/AdminProducts'))
 const AdminOrders    = lazy(() => import('./pages/admin/AdminOrders'))
+const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'))
 
 // Premium Glassmorphic Loading Screen
 const LoadingFallback = () => (
@@ -81,6 +83,7 @@ const ScrollToHash = () => {
 export default function App() {
   const { isDark } = useTheme()
   const location = useLocation()
+  useAnalytics()
 
   const validRoutes = [
     '/',
@@ -97,6 +100,7 @@ export default function App() {
     '/admin',
     '/admin/products',
     '/admin/orders',
+    '/admin/analytics',
   ]
 
   const is404 =
@@ -146,6 +150,7 @@ export default function App() {
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/products" element={<AdminProducts />} />
                 <Route path="/admin/orders" element={<AdminOrders />} />
+                <Route path="/admin/analytics" element={<AdminAnalytics />} />
               </Route>
 
               {/* 404 */}

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { trackEvent } from '../utils/analytics'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { MapPin, CreditCard } from 'lucide-react'
@@ -24,6 +25,16 @@ export default function CheckoutPage() {
   const grandTotal = state?.grandTotal || 0
   const discount   = state?.discount   || 0
   const couponCode = state?.couponCode || ''
+
+  useEffect(() => {
+    trackEvent('checkout_start', {
+      cartItemsCount: cartItems.length,
+      cartTotal,
+      discount,
+      couponCode,
+      grandTotal
+    })
+  }, [])
   
   const [paymentMethod, setPaymentMethod] = useState('razorpay')
 
@@ -85,6 +96,12 @@ export default function CheckoutPage() {
     if (cartItems.length === 0) {
       return toast.error('Your cart is empty')
     }
+
+    trackEvent('payment_start', {
+      paymentMethod,
+      totalPrice: finalTotal,
+      couponCode
+    })
 
     setLoading(true)
 

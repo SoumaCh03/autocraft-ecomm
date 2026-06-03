@@ -15,6 +15,7 @@ import ShopActiveFilters from '../components/shop/ShopActiveFilters'
 import ShopMobileFilters from '../components/shop/ShopMobileFilters'
 import useCategories from '../hooks/useCategories'
 import { getCategoryDisplayName } from '../utils/categories'
+import { trackEvent } from '../utils/analytics'
 
 const API = BASE_URL
 
@@ -95,6 +96,14 @@ export default function ShopPage() {
       setProducts(data.products)
       setTotal(data.total)
       setPages(data.pages)
+
+      // Track search query with result counts
+      if (search) {
+        trackEvent('search', {
+          searchQuery: search,
+          searchHasResults: data.products.length > 0,
+        })
+      }
     } catch {
       toast.error('Failed to load products')
     } finally {
@@ -201,7 +210,7 @@ export default function ShopPage() {
               <ShopPagination pages={pages} page={page} setPage={setPage} />
             )}
 
-            {!loading && products.length === 0 && (
+            {!loading && products.length === 0 && activeFilters.length > 0 && (
               <button onClick={clearAllFilters} className="btn-primary mx-auto">
                 Clear Filters
               </button>

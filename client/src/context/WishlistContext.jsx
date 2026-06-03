@@ -3,6 +3,7 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import BASE_URL from '../utils/api'
 import { useAuth } from './AuthContext'
+import { trackEvent } from '../utils/analytics'
 
 const WishlistContext = createContext()
 const API = BASE_URL
@@ -54,6 +55,7 @@ export const WishlistProvider = ({ children }) => {
       const { data } = await axios.post(`${API}/auth/wishlist/${product._id}`, {}, { withCredentials: true })
       setWishlist(data.wishlist || [])
       toast.success('Added to wishlist')
+      trackEvent('wishlist_add', { productId: product._id, name: product.name, price: product.price })
       return true
     } catch (err) {
       toast.error(err.response?.data?.message || 'Wishlist update failed')

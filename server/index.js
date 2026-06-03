@@ -20,14 +20,17 @@ import uploadRoutes      from './routes/uploadRoutes.js';
 import couponRoutes      from './routes/couponRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import categoryRoutes    from './routes/categoryRoutes.js';
+import analyticsRoutes   from './routes/analyticsRoutes.js';
 
 import { sanitizeInput } from './middleware/sanitizeMiddleware.js';
 import { apiLimiter, authLimiter, passwordResetLimiter } from './middleware/rateLimitMiddleware.js';
 
 import { initNotificationSocket } from './sockets/notificationSocket.js';
 import { initNotificationEmitter } from './utils/notificationEmitter.js';
+import { startAnalyticsCleanupJob } from './utils/analyticsCleanup.js';
 
 connectDB();
+startAnalyticsCleanupJob();
 
 const app = express();
 
@@ -108,6 +111,7 @@ app.use('/api/upload',         uploadRoutes);
 app.use('/api/coupons',        couponRoutes);
 app.use('/api/notifications',  notificationRoutes);
 app.use('/api/categories',     categoryRoutes);
+app.use('/api/analytics',      analyticsRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'AUTOCRAFT server running' });
@@ -170,4 +174,3 @@ process.on('SIGTERM', async () => {
     process.exit(0);
   });
 });
-
