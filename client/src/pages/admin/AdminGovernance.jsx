@@ -42,6 +42,26 @@ export default function AdminGovernance() {
   const [activityLogs, setActivityLogs] = useState([])
   const [govLogs, setGovLogs] = useState([])
 
+  // Customer governance states
+  const [customerSubTab, setCustomerSubTab] = useState('directory')
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [customers, setCustomers] = useState([])
+  const [pendingPurges, setPendingPurges] = useState([])
+  const [customerGovLogs, setCustomerGovLogs] = useState([])
+  const [purgeAuditLogs, setPurgeAuditLogs] = useState([])
+
+  // Customer Purge Stats state
+  const [customerStats, setCustomerStats] = useState(null)
+  const [statsLoading, setStatsLoading] = useState(false)
+
+  // Customer Purge approval modal state
+  const [showCustomerPurgeModal, setShowCustomerPurgeModal] = useState(false)
+  const [selectedPurgeRequest, setSelectedPurgeRequest] = useState(null)
+  const [customerPurgeAction, setCustomerPurgeAction] = useState('') // 'approve', 'reject'
+  const [customerPurgeReason, setCustomerPurgeReason] = useState('')
+  const [customerPurgePassword, setCustomerPurgePassword] = useState('')
+  const [customerPurgeConfirmText, setCustomerPurgeConfirmText] = useState('')
+
   // Search & Pagination states
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
@@ -65,7 +85,12 @@ export default function AdminGovernance() {
   // Fetch data depending on active tab
   useEffect(() => {
     fetchData()
-  }, [activeTab, page, roleFilter, statusFilter])
+  }, [activeTab, page, roleFilter, statusFilter, customerSubTab])
+
+  const handleCustomerSubTabChange = (newSubTab) => {
+    setCustomerSubTab(newSubTab)
+    setPage(1)
+  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -101,6 +126,30 @@ export default function AdminGovernance() {
         const { data } = await axios.get(`${API}/logs/governance`, { params: { page, limit: 20 }, withCredentials: true })
         setGovLogs(data.logs || [])
         setTotalPages(data.pages || 1)
+      } else if (activeTab === 'customer-governance') {
+        if (customerSubTab === 'directory') {
+          const { data } = await axios.get(`${API}/users`, {
+            params: { role: 'customer', search: customerSearch, page, limit: 15 },
+            withCredentials: true
+          })
+          setCustomers(data.users || [])
+          setTotalPages(data.pages || 1)
+        } else if (customerSubTab === 'pending-purges') {
+          const { data } = await axios.get(`${API}/customer/purge/requests`, {
+            params: { status: 'pending', page, limit: 15 },
+            withCredentials: true
+          })
+          setPendingPurges(data.requests || [])
+          setTotalPages(data.pages || 1)
+        } else if (customerSubTab === 'customer-gov-logs') {
+          const { data } = await axios.get(`${API}/customer/logs`, { params: { page, limit: 20 }, withCredentials: true })
+          setCustomerGovLogs(data.logs || [])
+          setTotalPages(data.pages || 1)
+        } else if (customerSubTab === 'purge-audit-logs') {
+          const { data } = await axios.get(`${API}/customer/purge/audit-logs`, { params: { page, limit: 20 }, withCredentials: true })
+          setPurgeAuditLogs(data.logs || [])
+          setTotalPages(data.pages || 1)
+        }
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to load governance data')
@@ -108,6 +157,7 @@ export default function AdminGovernance() {
       setLoading(false)
     }
   }
+
 
   const handleSearchSubmit = (e) => {
     e.preventDefault()
@@ -126,6 +176,51 @@ export default function AdminGovernance() {
     e.preventDefault()
     if (reason.trim().length < 20 || reason.trim().length > 1000) {
       return toast.error('Reason must be between 20 and 1000 characters.')
+    }
+
+    if (actionType === 'disable_customer') {
+      try {
+        const { data } = await axios.post(`${API}/customer/disable`, {
+          targetCustomerId: selectedUser._id,
+          initiatorReason: reason
+        }, { withCredentials: true })
+        toast.success(data.message)
+        setShowActionModal(false)
+        fetchData()
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Action failed')
+      }
+      return
+    }
+
+    if (actionType === 'soft_delete_customer') {
+      try {
+        const { data } = await axios.post(`${API}/customer/soft-delete`, {
+          targetCustomerId: selectedUser._id,
+          initiatorReason: reason
+        }, { withCredentials: true })
+        toast.success(data.message)
+        setShowActionModal(false)
+        fetchData()
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Action failed')
+      }
+      return
+    }
+
+    if (actionType === 'initiate_purge_customer') {
+      try {
+        const { data } = await axios.post(`${API}/customer/purge/initiate`, {
+          targetCustomerId: selectedUser._id,
+          initiatorReason: reason
+        }, { withCredentials: true })
+        toast.success(data.message)
+        setShowActionModal(false)
+        fetchData()
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Action failed')
+      }
+      return
     }
 
     let requestedRole = undefined
@@ -187,6 +282,91 @@ export default function AdminGovernance() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Processing failed')
     }
+  }
+
+  const openCustomerPurgeModal = async (reqObj, action) => {
+    setSelectedPurgeRequest(reqObj)
+    setCustomerPurgeAction(action)
+    setCustomerPurgeReason('')
+    setCustomerPurgePassword('')
+    setCustomerPurgeConfirmText('')
+    setCustomerStats(null)
+
+    if (action === 'approve') {
+      setStatsLoading(true)
+      setShowCustomerPurgeModal(true)
+      try {
+        const targetId = reqObj.targetCustomerId?._id || reqObj.targetCustomerId
+        const { data } = await axios.get(`${API}/customer/stats/${targetId}`, {
+          withCredentials: true
+        })
+        setCustomerStats(data)
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to fetch customer stats')
+        setShowCustomerPurgeModal(false)
+      } finally {
+        setStatsLoading(false)
+      }
+    } else {
+      setShowCustomerPurgeModal(true)
+    }
+  }
+
+  const handleCustomerPurgeSubmit = async (e) => {
+    e.preventDefault()
+    if (customerPurgeReason.trim().length < 20 || customerPurgeReason.trim().length > 1000) {
+      return toast.error('Reason must be between 20 and 1000 characters.')
+    }
+    if (!customerPurgePassword) {
+      return toast.error('Password confirmation is required.')
+    }
+    if (customerPurgeAction === 'approve' && customerPurgeConfirmText !== 'DELETE CUSTOMER DATA') {
+      return toast.error('Confirmation text must match "DELETE CUSTOMER DATA" exactly.')
+    }
+
+    try {
+      const url = `${API}/customer/purge/${customerPurgeAction === 'approve' ? 'approve' : 'reject'}/${selectedPurgeRequest._id}`
+      const payload = {
+        approverReason: customerPurgeReason,
+        password: customerPurgePassword
+      }
+      if (customerPurgeAction === 'approve') {
+        payload.confirmationText = customerPurgeConfirmText
+      }
+
+      const { data } = await axios.post(url, payload, { withCredentials: true })
+      toast.success(data.message)
+      setShowCustomerPurgeModal(false)
+      fetchData()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Processing purge request failed')
+    }
+  }
+
+  // Customer governance logs PDF/Excel export preparation
+  const getCustomerGovPDFData = () => {
+    const headers = ['Timestamp', 'Actor', 'Target Customer', 'Action Type', 'Details', 'Reason']
+    const rows = customerGovLogs.map(l => [
+      new Date(l.timestamp).toLocaleString('en-IN'),
+      l.actorName,
+      l.targetCustomerName,
+      l.actionType?.replace(/_/g, ' '),
+      l.details || '-',
+      l.reason || '-'
+    ])
+    return { headers, rows }
+  }
+
+  const getPurgeAuditPDFData = () => {
+    const headers = ['Execution Time', 'Request ID', 'Initiator Reason', 'Approver Reason', 'Status']
+    const rows = purgeAuditLogs.map(l => [
+      new Date(l.executionTimestamp).toLocaleString('en-IN'),
+      l.requestId,
+      l.initiatorReason || '-',
+      l.approverReason || '-',
+      l.status
+    ])
+    return { headers, rows }
   }
 
   // Export Utilities
@@ -306,7 +486,8 @@ export default function AdminGovernance() {
           { id: 'role-logs', label: 'Role Audit Trail', icon: FileText },
           { id: 'security-logs', label: 'Security Audits', icon: ShieldCheck },
           { id: 'activity-logs', label: 'Admin Activity Logs', icon: FileText },
-          { id: 'governance-logs', label: 'Governance Panel Audits', icon: FileText }
+          { id: 'governance-logs', label: 'Governance Panel Audits', icon: FileText },
+          { id: 'customer-governance', label: 'Customer Purge & Governance', icon: Trash2 }
         ].map(tab => {
           const TabIcon = tab.icon
           const isActive = activeTab === tab.id
@@ -882,6 +1063,310 @@ export default function AdminGovernance() {
           </div>
         )}
 
+        {/* CUSTOMER GOVERNANCE & DATA PURGE TAB */}
+        {activeTab === 'customer-governance' && (
+          <div>
+            {/* Sub-tab navigation */}
+            <div className="flex gap-2 border-b border-dark-border/30 pb-3 mb-6 overflow-x-auto scrollbar-none">
+              {[
+                { id: 'directory', label: 'Customer Directory' },
+                { id: 'pending-purges', label: 'Pending Purges' },
+                { id: 'customer-gov-logs', label: 'Customer Governance Logs' },
+                { id: 'purge-audit-logs', label: 'Purge Audit Trails' }
+              ].map(sub => (
+                <button
+                  key={sub.id}
+                  onClick={() => handleCustomerSubTabChange(sub.id)}
+                  className={`text-xs font-semibold py-1.5 px-3 rounded-lg border transition-all cursor-pointer ${
+                    customerSubTab === sub.id
+                      ? 'bg-primary-500/10 text-primary-400 border-primary-500/20'
+                      : 'text-dark-muted border-transparent hover:text-dark-text hover:bg-dark-border/10'
+                  }`}
+                >
+                  {sub.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Sub-tab Content Panels */}
+            {customerSubTab === 'directory' && (
+              <div>
+                {/* Search Bar */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    setPage(1)
+                    fetchData()
+                  }}
+                  className="flex items-center gap-2 bg-dark-bg/50 border border-dark-border/60 rounded-xl px-3 py-1.5 w-full md:w-80 mb-6"
+                >
+                  <Search size={16} className="text-dark-muted" />
+                  <input
+                    type="text"
+                    placeholder="Search customer email or name..."
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    className="bg-transparent text-sm text-dark-text placeholder-dark-muted focus:outline-none w-full"
+                  />
+                  <button type="submit" className="hidden" />
+                </form>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b border-dark-border/60 text-dark-muted font-medium">
+                        <th className="py-3 px-4">Name</th>
+                        <th className="py-3 px-4">Email</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4">Joined Date</th>
+                        <th className="py-3 px-4 text-right">Governance Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-dark-border/40">
+                      {customers.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="text-center py-8 text-dark-muted">No customers found.</td>
+                        </tr>
+                      ) : customers.map(c => (
+                        <tr key={c._id} className="hover:bg-dark-border/10 transition-colors">
+                          <td className="py-3.5 px-4 font-medium text-dark-text">{c.name}</td>
+                          <td className="py-3.5 px-4 text-dark-muted font-mono">{c.email}</td>
+                          <td className="py-3.5 px-4">
+                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
+                              c.status === 'active'
+                                ? 'bg-green-500/10 text-green-400'
+                                : 'bg-red-500/10 text-red-400'
+                            }`}>
+                              {c.status}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-dark-muted text-xs">
+                            {new Date(c.createdAt).toLocaleDateString('en-IN')}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-3">
+                              {c.status === 'active' ? (
+                                <button
+                                  onClick={() => openActionModal(c, 'disable_customer')}
+                                  className="text-xs text-red-400 hover:text-red-300 font-semibold"
+                                  title="Disable account (Level 1)"
+                                >
+                                  Disable Account
+                                </button>
+                              ) : (
+                                <span className="text-xs text-dark-muted italic">Disabled</span>
+                              )}
+                              <button
+                                onClick={() => openActionModal(c, 'soft_delete_customer')}
+                                className="text-xs text-orange-400 hover:text-orange-300 font-semibold"
+                                title="Soft delete and anonymize customer (Level 2)"
+                              >
+                                Soft Delete
+                              </button>
+                              <button
+                                onClick={() => openActionModal(c, 'initiate_purge_customer')}
+                                className="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1"
+                                title="Request dual-approved permanent purge (Level 3)"
+                              >
+                                <Trash2 size={12} /> Purge Request
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {customerSubTab === 'pending-purges' && (
+              <div>
+                <div className="flex items-center gap-2 text-purple-400 mb-6 bg-purple-500/5 border border-purple-500/10 p-3 rounded-xl">
+                  <AlertTriangle size={16} />
+                  <p className="text-xs">
+                    Permanent Purge requests (Level 3) require password signature and independent Super Admin approval. Initiators are blocked from approving.
+                  </p>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b border-dark-border/60 text-dark-muted font-medium">
+                        <th className="py-3 px-4">Request ID</th>
+                        <th className="py-3 px-4">Initiator</th>
+                        <th className="py-3 px-4">Target Customer</th>
+                        <th className="py-3 px-4">Initiator Reason</th>
+                        <th className="py-3 px-4">Date Initiated</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-dark-border/40">
+                      {pendingPurges.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="text-center py-8 text-dark-muted">No pending purge requests.</td>
+                        </tr>
+                      ) : pendingPurges.map(p => (
+                        <tr key={p._id} className="hover:bg-dark-border/10 transition-colors">
+                          <td className="py-3.5 px-4 font-mono text-xs text-primary-500">{p.requestId}</td>
+                          <td className="py-3.5 px-4 text-dark-text">{p.initiatorId?.name || 'System'}</td>
+                          <td className="py-3.5 px-4">
+                            <p className="font-semibold text-dark-text">{p.targetCustomerId?.name || 'Deleted Customer'}</p>
+                            <p className="text-xs text-dark-muted font-mono">{p.targetCustomerId?.email}</p>
+                          </td>
+                          <td className="py-3.5 px-4 text-dark-muted text-xs max-w-xs truncate" title={p.initiatorReason}>
+                            {p.initiatorReason}
+                          </td>
+                          <td className="py-3.5 px-4 text-dark-muted text-xs">
+                            {new Date(p.createdAt).toLocaleString('en-IN')}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            {p.initiatorId?._id !== currentUser?._id ? (
+                              <div className="flex items-center justify-end gap-3">
+                                <button
+                                  onClick={() => openCustomerPurgeModal(p, 'approve')}
+                                  className="text-xs text-green-400 hover:text-green-300 font-semibold"
+                                >
+                                  Approve &amp; Execute
+                                </button>
+                                <button
+                                  onClick={() => openCustomerPurgeModal(p, 'reject')}
+                                  className="text-xs text-red-400 hover:text-red-300 font-semibold"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-dark-muted italic">Self-action locked</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {customerSubTab === 'customer-gov-logs' && (
+              <div>
+                <div className="flex justify-end gap-3 mb-6">
+                  <button
+                    onClick={() => exportExcel(customerGovLogs, 'Customer_Governance_Logs')}
+                    className="btn-outline text-xs py-1.5 px-3 flex items-center gap-1.5"
+                  >
+                    <Download size={12} /> Excel Report
+                  </button>
+                  <button
+                    onClick={() => {
+                      const { headers, rows } = getCustomerGovPDFData()
+                      exportPDF('Customer Governance Logs', headers, rows, 'Customer_Governance_Logs')
+                    }}
+                    className="btn-outline text-xs py-1.5 px-3 flex items-center gap-1.5"
+                  >
+                    <FileText size={12} /> PDF Report
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b border-dark-border/60 text-dark-muted font-medium">
+                        <th className="py-3 px-4">Date</th>
+                        <th className="py-3 px-4">Actor</th>
+                        <th className="py-3 px-4">Customer</th>
+                        <th className="py-3 px-4">Action</th>
+                        <th className="py-3 px-4">Details</th>
+                        <th className="py-3 px-4">Audit Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-dark-border/40">
+                      {customerGovLogs.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="text-center py-8 text-dark-muted">No governance logs recorded.</td>
+                        </tr>
+                      ) : customerGovLogs.map(l => (
+                        <tr key={l._id} className="hover:bg-dark-border/10 transition-colors">
+                          <td className="py-3 px-4 text-xs text-dark-muted font-mono">
+                            {new Date(l.timestamp).toLocaleString('en-IN')}
+                          </td>
+                          <td className="py-3 px-4 text-dark-text font-medium">{l.actorName}</td>
+                          <td className="py-3 px-4 text-dark-text font-medium">{l.targetCustomerName}</td>
+                          <td className="py-3 px-4">
+                            <span className="text-xs px-2 py-0.5 rounded font-mono bg-purple-500/10 text-purple-400 capitalize">
+                              {l.actionType?.replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-xs text-dark-muted max-w-xs break-words">{l.details}</td>
+                          <td className="py-3 px-4 text-xs text-dark-muted max-w-xs break-words">{l.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {customerSubTab === 'purge-audit-logs' && (
+              <div>
+                <div className="flex justify-end gap-3 mb-6">
+                  <button
+                    onClick={() => exportExcel(purgeAuditLogs, 'Customer_Purge_Audit_Logs')}
+                    className="btn-outline text-xs py-1.5 px-3 flex items-center gap-1.5"
+                  >
+                    <Download size={12} /> Excel Report
+                  </button>
+                  <button
+                    onClick={() => {
+                      const { headers, rows } = getPurgeAuditPDFData()
+                      exportPDF('Customer Purge Audit Logs', headers, rows, 'Customer_Purge_Audit_Logs')
+                    }}
+                    className="btn-outline text-xs py-1.5 px-3 flex items-center gap-1.5"
+                  >
+                    <FileText size={12} /> PDF Report
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b border-dark-border/60 text-dark-muted font-medium">
+                        <th className="py-3 px-4">Execution Date</th>
+                        <th className="py-3 px-4">Request ID</th>
+                        <th className="py-3 px-4">Initiator Reason</th>
+                        <th className="py-3 px-4">Approver Reason</th>
+                        <th className="py-3 px-4">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-dark-border/40">
+                      {purgeAuditLogs.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="text-center py-8 text-dark-muted">No purge audit logs recorded.</td>
+                        </tr>
+                      ) : purgeAuditLogs.map(l => (
+                        <tr key={l._id} className="hover:bg-dark-border/10 transition-colors">
+                          <td className="py-3 px-4 text-xs text-dark-muted font-mono">
+                            {new Date(l.executionTimestamp).toLocaleString('en-IN')}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-xs text-primary-500">{l.requestId}</td>
+                          <td className="py-3 px-4 text-xs text-dark-muted max-w-xs break-words">{l.initiatorReason}</td>
+                          <td className="py-3 px-4 text-xs text-dark-muted max-w-xs break-words">{l.approverReason}</td>
+                          <td className="py-3 px-4">
+                            <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-400 rounded">
+                              {l.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Pagination footer */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-dark-border/40 pt-4 mt-6">
@@ -923,7 +1408,7 @@ export default function AdminGovernance() {
                   Action Detail
                 </label>
                 <div className="bg-dark-bg/60 p-3 rounded-lg border border-dark-border/40 text-xs text-dark-text capitalize">
-                  {actionType?.replace('_', ' ')}
+                  {actionType?.replace(/_/g, ' ')}
                 </div>
               </div>
 
@@ -1036,6 +1521,149 @@ export default function AdminGovernance() {
                   }`}
                 >
                   {approvalAction === 'approve' ? 'Approve Request' : 'Reject Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOMER PURGE DUAL APPROVAL / REJECTION MODAL */}
+      {showCustomerPurgeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="card w-full max-w-lg bg-dark-card border-dark-border p-6 shadow-2xl animate-fade-in relative max-h-[90vh] overflow-y-auto">
+            <h3 className="font-display text-xl font-bold text-dark-text mb-2 flex items-center gap-2">
+              <Trash2 className="text-red-400" size={24} />
+              {customerPurgeAction === 'approve' ? 'Verify & Execute Permanent Purge' : 'Reject Purge Request'}
+            </h3>
+            <p className="text-xs text-dark-muted mb-4">
+              {customerPurgeAction === 'approve'
+                ? 'Review customer metrics and confirm identity parameters below to process this permanent purge request.'
+                : 'Rejection requires password validation and detailed reasons.'}
+            </p>
+
+            <div className="bg-dark-bg/60 p-4 rounded-lg border border-dark-border/40 text-xs text-dark-text mb-4 space-y-2">
+              <p><strong>Target Customer:</strong> {selectedPurgeRequest?.targetCustomerId?.name || 'Deleted Customer'}</p>
+              <p><strong>Customer Email:</strong> <span className="font-mono">{selectedPurgeRequest?.targetCustomerId?.email}</span></p>
+              <p className="border-t border-dark-border/40 pt-2 text-dark-muted"><strong>Initiator Reason:</strong> "{selectedPurgeRequest?.initiatorReason}"</p>
+            </div>
+
+            {customerPurgeAction === 'approve' && (
+              <div className="mb-4">
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider mb-2">
+                  Customer Impact Statistics
+                </label>
+                {statsLoading ? (
+                  <div className="flex items-center justify-center py-6 bg-dark-bg/40 border border-dark-border/20 rounded-lg">
+                    <RefreshCw size={20} className="animate-spin text-primary-500" />
+                    <span className="ml-2 text-xs text-dark-muted">Fetching customer stats...</span>
+                  </div>
+                ) : customerStats ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-dark-bg/40 p-4 rounded-lg border border-dark-border/30">
+                    <div className="border border-dark-border/20 p-2.5 rounded bg-dark-card/40">
+                      <p className="text-[10px] text-dark-muted uppercase font-bold tracking-wider">Account Age</p>
+                      <p className="text-sm font-semibold text-dark-text mt-0.5">{customerStats.accountAgeDays} Days</p>
+                    </div>
+                    <div className="border border-dark-border/20 p-2.5 rounded bg-dark-card/40">
+                      <p className="text-[10px] text-dark-muted uppercase font-bold tracking-wider">Total Orders</p>
+                      <p className="text-sm font-semibold text-dark-text mt-0.5">{customerStats.orderCount} Orders</p>
+                    </div>
+                    <div className="border border-dark-border/20 p-2.5 rounded bg-dark-card/40">
+                      <p className="text-[10px] text-dark-muted uppercase font-bold tracking-wider">Total Spending</p>
+                      <p className="text-sm font-semibold text-dark-text mt-0.5">₹{customerStats.totalSpending?.toLocaleString()}</p>
+                    </div>
+                    <div className="border border-dark-border/20 p-2.5 rounded bg-dark-card/40">
+                      <p className="text-[10px] text-dark-muted uppercase font-bold tracking-wider">Saved Addresses</p>
+                      <p className="text-sm font-semibold text-dark-text mt-0.5">{customerStats.addressesCount} Addresses</p>
+                    </div>
+                    <div className="border border-dark-border/20 p-2.5 rounded bg-dark-card/40">
+                      <p className="text-[10px] text-dark-muted uppercase font-bold tracking-wider">Product Reviews</p>
+                      <p className="text-sm font-semibold text-dark-text mt-0.5">{customerStats.reviewCount} Reviews</p>
+                    </div>
+                    <div className="border border-dark-border/20 p-2.5 rounded bg-dark-card/40">
+                      <p className="text-[10px] text-dark-muted uppercase font-bold tracking-wider">Wishlist Items</p>
+                      <p className="text-sm font-semibold text-dark-text mt-0.5">{customerStats.wishlistCount} Items</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-xs text-red-400 bg-red-500/5 rounded border border-red-500/10">
+                    Failed to load statistics.
+                  </div>
+                )}
+              </div>
+            )}
+
+            <form onSubmit={handleCustomerPurgeSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider mb-2">
+                  Approver Reason (Min 20 characters)
+                </label>
+                <textarea
+                  rows="3"
+                  required
+                  placeholder="Provide detailed corporate context or justification for this action..."
+                  value={customerPurgeReason}
+                  onChange={(e) => setCustomerPurgeReason(e.target.value)}
+                  className="input-field w-full text-sm p-3 bg-dark-bg"
+                />
+                <div className="flex justify-between items-center text-[10px] text-dark-muted mt-1 font-mono">
+                  <span>Minimum: 20 · Maximum: 1000</span>
+                  <span className={customerPurgeReason.length < 20 ? 'text-red-400 font-bold' : 'text-green-400'}>
+                    Length: {customerPurgeReason.length} chars
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider mb-2">
+                  Password Confirmation
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Verify your Super Admin password..."
+                  value={customerPurgePassword}
+                  onChange={(e) => setCustomerPurgePassword(e.target.value)}
+                  className="input-field w-full text-sm p-3 bg-dark-bg"
+                />
+              </div>
+
+              {customerPurgeAction === 'approve' && (
+                <div>
+                  <label className="block text-xs font-semibold text-red-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <AlertTriangle size={12} /> Type confirmation text
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder='Type "DELETE CUSTOMER DATA" exactly...'
+                    value={customerPurgeConfirmText}
+                    onChange={(e) => setCustomerPurgeConfirmText(e.target.value)}
+                    className="input-field w-full text-sm p-3 bg-dark-bg border-red-500/20 focus:border-red-500/50"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-3 justify-end pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomerPurgeModal(false)}
+                  className="btn-outline text-xs px-4 py-2"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    customerPurgeReason.length < 20 ||
+                    !customerPurgePassword ||
+                    (customerPurgeAction === 'approve' && customerPurgeConfirmText !== 'DELETE CUSTOMER DATA')
+                  }
+                  className={`btn-primary text-xs px-4 py-2 disabled:opacity-50 ${
+                    customerPurgeAction === 'reject' ? 'bg-red-600 hover:bg-red-500' : 'bg-green-600 hover:bg-green-500'
+                  }`}
+                >
+                  {customerPurgeAction === 'approve' ? 'Approve & Permanent Purge' : 'Reject Request'}
                 </button>
               </div>
             </form>

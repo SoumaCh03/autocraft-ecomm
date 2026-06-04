@@ -6,6 +6,11 @@ import RoleAuditLogs from '../models/roleAuditLogsModel.js';
 import SecurityAuditLogs from '../models/securityAuditLogsModel.js';
 import AdminActivityLogs from '../models/adminActivityLogsModel.js';
 import GovernanceLogs from '../models/governanceLogsModel.js';
+import CustomerPurgeRequest from '../models/customerPurgeRequestModel.js';
+import CustomerPurgeAuditLog from '../models/customerPurgeAuditLogModel.js';
+import CustomerGovernanceLog from '../models/customerGovernanceLogModel.js';
+import Product from '../models/productModel.js';
+import Order from '../models/orderModel.js';
 import { protect, superAdminOnly } from '../middleware/authMiddleware.js';
 import {
   logRoleChange,
@@ -555,6 +560,469 @@ router.get('/logs/governance', async (req, res) => {
       .skip(skip)
       .limit(Number(limit))
       .sort({ timestamp: -1 });
+
+    res.json({ logs, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ==========================================
+// CUSTOMER GOVERNANCE & DATA PURGE WORKFLOWS
+// ==========================================
+
+// Helper to log customer governance audit events
+const logCustomerGovernanceEvent = async (req, { targetCustomer, actionType, reason, details }) => {
+  try {
+    const ipHash = getIpHash(req);
+    const { device, browser } = getClientInfo(req);
+    return await CustomerGovernanceLog.create({
+      actorId: req.user._id,
+      actorName: req.user.name,
+      targetCustomerId: targetCustomer._id,
+      targetCustomerName: targetCustomer.name,
+      actionType,
+      reason: reason.trim(),
+      details,
+      ipHash,
+      deviceInfo: device,
+      browserInfo: browser
+    });
+  } catch (err) {
+    console.error('Failed to log customer governance audit:', err.message);
+  }
+};
+
+// 11. POST /customer/disable - Level 1: Disable Customer Account
+router.post('/customer/disable', async (req, res) => {
+  try {
+    const { targetCustomerId, initiatorReason } = req.body;
+
+    if (!targetCustomerId) {
+      return res.status(400).json({ message: 'Target customer ID is required.' });
+    }
+
+    if (!initiatorReason || initiatorReason.trim().length < 20 || initiatorReason.trim().length > 1000) {
+      return res.status(400).json({ message: 'Initiator reason must be between 20 and 1000 characters.' });
+    }
+
+    const customer = await User.findById(targetCustomerId);
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer account not found.' });
+    }
+
+    if (customer.role === 'super_admin') {
+      return res.status(400).json({ message: 'Cannot perform customer governance actions on a Super Admin.' });
+    }
+
+    customer.status = 'disabled';
+    await customer.save();
+
+    await logCustomerGovernanceEvent(req, {
+      targetCustomer: customer,
+      actionType: 'disable_customer',
+      reason: initiatorReason,
+      details: `Disabled customer account: ${customer.email}.`
+    });
+
+    res.json({ message: 'Customer account disabled successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// 12. POST /customer/soft-delete - Level 2: Soft Delete Customer Account (anonymize personal fields)
+router.post('/customer/soft-delete', async (req, res) => {
+  try {
+    const { targetCustomerId, initiatorReason } = req.body;
+
+    if (!targetCustomerId) {
+      return res.status(400).json({ message: 'Target customer ID is required.' });
+    }
+
+    if (!initiatorReason || initiatorReason.trim().length < 20 || initiatorReason.trim().length > 1000) {
+      return res.status(400).json({ message: 'Initiator reason must be between 20 and 1000 characters.' });
+    }
+
+    const customer = await User.findById(targetCustomerId);
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer account not found.' });
+    }
+
+    if (customer.role === 'super_admin') {
+      return res.status(400).json({ message: 'Cannot perform customer governance actions on a Super Admin.' });
+    }
+
+    // Level 2 Soft Delete: Anonymize personal fields and disable login
+    const originalEmail = customer.email;
+    customer.name = 'Anonymized Customer';
+    customer.email = `anonymized_${customer._id}@autocraft.internal`;
+    customer.phone = '';
+    customer.addresses = [];
+    customer.wishlist = [];
+    customer.avatar = '';
+    customer.status = 'disabled';
+    customer.refreshTokens = [];
+    await customer.save();
+
+    await logCustomerGovernanceEvent(req, {
+      targetCustomer: customer,
+      actionType: 'soft_delete_customer',
+      reason: initiatorReason,
+      details: `Soft deleted and anonymized customer account. Original email was ${originalEmail}.`
+    });
+
+    res.json({ message: 'Customer account soft deleted and anonymized successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// 13. POST /customer/purge/initiate - Level 3: Request Permanent Purge
+router.post('/customer/purge/initiate', async (req, res) => {
+  try {
+    const { targetCustomerId, initiatorReason } = req.body;
+
+    if (!targetCustomerId) {
+      return res.status(400).json({ message: 'Target customer ID is required.' });
+    }
+
+    if (!initiatorReason || initiatorReason.trim().length < 20 || initiatorReason.trim().length > 1000) {
+      return res.status(400).json({ message: 'Initiator reason must be between 20 and 1000 characters.' });
+    }
+
+    const customer = await User.findById(targetCustomerId);
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer account not found.' });
+    }
+
+    if (customer.role === 'super_admin') {
+      return res.status(400).json({ message: 'Cannot perform customer governance actions on a Super Admin.' });
+    }
+
+    // Check if a pending purge request already exists for this customer
+    const existingRequest = await CustomerPurgeRequest.findOne({
+      targetCustomerId: customer._id,
+      status: 'pending'
+    });
+    if (existingRequest) {
+      return res.status(400).json({ message: 'A pending purge request already exists for this customer.' });
+    }
+
+    const ipHash = getIpHash(req);
+    const { device, browser } = getClientInfo(req);
+    const requestId = uuidv4();
+
+    const request = await CustomerPurgeRequest.create({
+      requestId,
+      targetCustomerId: customer._id,
+      initiatorId: req.user._id,
+      initiatorReason: initiatorReason.trim(),
+      status: 'pending',
+      ipHash,
+      deviceInfo: device,
+      browserInfo: browser
+    });
+
+    await logCustomerGovernanceEvent(req, {
+      targetCustomer: customer,
+      actionType: 'initiate_purge_customer',
+      reason: initiatorReason,
+      details: `Initiated permanent purge request #${requestId} for customer ${customer.name}.`
+    });
+
+    res.status(201).json({
+      message: 'Permanent purge request created. Dual approval is required.',
+      request
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// 14. GET /customer/stats/:id - Get customer statistics for confirmation screen
+router.get('/customer/stats/:id', async (req, res) => {
+  try {
+    const customer = await User.findById(req.params.id);
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer account not found.' });
+    }
+
+    const accountAgeDays = Math.floor((Date.now() - customer.createdAt) / (1000 * 60 * 60 * 24));
+    
+    // Order Count & Spending
+    const orderCount = await Order.countDocuments({ user: customer._id });
+    const paidOrders = await Order.find({ user: customer._id, isPaid: true });
+    const totalSpending = paidOrders.reduce((sum, o) => sum + o.totalPrice, 0);
+
+    // Saved Addresses Count
+    const addressesCount = customer.addresses ? customer.addresses.length : 0;
+
+    // Review Count
+    const products = await Product.find({ 'reviews.user': customer._id });
+    let reviewCount = 0;
+    products.forEach(p => {
+      p.reviews.forEach(r => {
+        if (r.user.toString() === customer._id.toString()) {
+          reviewCount++;
+        }
+      });
+    });
+
+    // Wishlist Count
+    const wishlistCount = customer.wishlist ? customer.wishlist.length : 0;
+
+    res.json({
+      name: customer.name,
+      email: customer.email,
+      accountAgeDays,
+      orderCount,
+      totalSpending,
+      addressesCount,
+      reviewCount,
+      wishlistCount
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// 15. GET /customer/purge/requests - Get all customer purge requests
+router.get('/customer/purge/requests', async (req, res) => {
+  try {
+    const { status, page = 1, limit = 20 } = req.query;
+    const query = {};
+    if (status) query.status = status;
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const total = await CustomerPurgeRequest.countDocuments(query);
+    const requests = await CustomerPurgeRequest.find(query)
+      .populate('initiatorId', 'name email')
+      .populate('targetCustomerId', 'name email role status')
+      .populate('approverId', 'name email')
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({ createdAt: -1 });
+
+    res.json({ requests, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// 16. POST /customer/purge/approve/:id - Approve and execute Level 3 Purge
+router.post('/customer/purge/approve/:id', async (req, res) => {
+  try {
+    const { approverReason, password, confirmationText } = req.body;
+
+    if (!approverReason || approverReason.trim().length < 20 || approverReason.trim().length > 1000) {
+      return res.status(400).json({ message: 'Approver reason must be between 20 and 1000 characters.' });
+    }
+
+    if (!password) {
+      return res.status(400).json({ message: 'Password confirmation is required.' });
+    }
+
+    if (confirmationText !== 'DELETE CUSTOMER DATA') {
+      return res.status(400).json({ message: 'Confirmation text must match "DELETE CUSTOMER DATA" exactly.' });
+    }
+
+    const request = await CustomerPurgeRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ message: 'Purge request not found.' });
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({ message: `Cannot approve request with status: ${request.status}` });
+    }
+
+    // 1. Password Reconfirmation check
+    const userWithPassword = await User.findById(req.user._id).select('+password');
+    const isPasswordValid = await userWithPassword.matchPassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Identity verification failed: Invalid password.' });
+    }
+
+    // 2. Strict Eligibility Rules check
+    if (req.user.role !== 'super_admin' || req.user.status !== 'active') {
+      return res.status(403).json({ message: 'Approval blocked: Approver must be an active Super Admin.' });
+    }
+
+    if (request.initiatorId.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: 'Approval blocked: Initiator cannot approve their own request.' });
+    }
+
+    const customer = await User.findById(request.targetCustomerId);
+    if (!customer) return res.status(404).json({ message: 'Target customer no longer exists.' });
+
+    // Execute Permanent Purge Workflow securely
+    const originalEmail = customer.email;
+    const originalName = customer.name;
+
+    // A. Update target User document: Strip all personal details
+    customer.name = 'Deleted Customer';
+    customer.email = `purged_${customer._id}@autocraft.internal`;
+    customer.phone = '';
+    customer.addresses = [];
+    customer.wishlist = [];
+    customer.avatar = '';
+    customer.googleId = undefined;
+    customer.password = undefined;
+    customer.refreshTokens = [];
+    customer.isVerified = false;
+    customer.status = 'disabled';
+    await customer.save();
+
+    // B. Update reviews inside Product models (anonymize)
+    await Product.updateMany(
+      { 'reviews.user': customer._id },
+      { $set: { 'reviews.$[elem].name': 'Deleted Customer' } },
+      { arrayFilters: [{ 'elem.user': customer._id }] }
+    );
+
+    // C. Remove user from any back-in-stock Product waitlists (notifyList)
+    await Product.updateMany(
+      { 'notifyList.user': customer._id },
+      { $pull: { notifyList: { user: customer._id } } }
+    );
+
+    // D. Update shipping address in customer Orders (anonymize)
+    await Order.updateMany(
+      { user: customer._id },
+      {
+        $set: {
+          'shippingAddress.name': 'Anonymized Customer',
+          'shippingAddress.phone': '0000000000',
+          'shippingAddress.street': 'Anonymized Address',
+          'shippingAddress.city': 'Anonymized City',
+          'shippingAddress.state': 'Anonymized State',
+          'shippingAddress.pincode': '000000'
+        }
+      }
+    );
+
+    // E. Save permanent Purge Audit Log
+    const ipHash = getIpHash(req);
+    const { device, browser } = getClientInfo(req);
+
+    await CustomerPurgeAuditLog.create({
+      requestId: request.requestId,
+      targetCustomerId: customer._id,
+      initiatorId: request.initiatorId,
+      approverId: req.user._id,
+      initiatorReason: request.initiatorReason,
+      approverReason: approverReason.trim(),
+      executionTimestamp: new Date(),
+      status: 'success',
+      ipHash,
+      deviceInfo: device,
+      browserInfo: browser
+    });
+
+    // F. Update request state
+    request.status = 'approved';
+    request.approverId = req.user._id;
+    request.approverReason = approverReason.trim();
+    request.approvedAt = new Date();
+    await request.save();
+
+    await logCustomerGovernanceEvent(req, {
+      targetCustomer: customer,
+      actionType: 'approve_purge_customer',
+      reason: approverReason,
+      details: `Approved and executed customer data purge for ID ${customer._id}.`
+    });
+
+    res.json({ message: 'Customer data purged successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// 17. POST /customer/purge/reject/:id - Reject Level 3 Purge
+router.post('/customer/purge/reject/:id', async (req, res) => {
+  try {
+    const { approverReason, password } = req.body;
+
+    if (!approverReason || approverReason.trim().length < 20 || approverReason.trim().length > 1000) {
+      return res.status(400).json({ message: 'Approver reason must be between 20 and 1000 characters.' });
+    }
+
+    if (!password) {
+      return res.status(400).json({ message: 'Password confirmation is required.' });
+    }
+
+    const request = await CustomerPurgeRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ message: 'Purge request not found.' });
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({ message: `Cannot reject request with status: ${request.status}` });
+    }
+
+    // 1. Password Reconfirmation check
+    const userWithPassword = await User.findById(req.user._id).select('+password');
+    const isPasswordValid = await userWithPassword.matchPassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Identity verification failed: Invalid password.' });
+    }
+
+    // 2. Strict Eligibility Rules check
+    if (req.user.role !== 'super_admin' || req.user.status !== 'active') {
+      return res.status(403).json({ message: 'Rejection blocked: Approver must be an active Super Admin.' });
+    }
+
+    if (request.initiatorId.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: 'Rejection blocked: Initiator cannot reject their own request.' });
+    }
+
+    const customer = await User.findById(request.targetCustomerId);
+    if (!customer) return res.status(404).json({ message: 'Customer no longer exists.' });
+
+    // Update request state
+    request.status = 'rejected';
+    request.approverId = req.user._id;
+    request.approverReason = approverReason.trim();
+    request.rejectedAt = new Date();
+    await request.save();
+
+    await logCustomerGovernanceEvent(req, {
+      targetCustomer: customer,
+      actionType: 'reject_purge_customer',
+      reason: approverReason,
+      details: `Rejected customer data purge for ID ${customer._id}.`
+    });
+
+    res.json({ message: 'Purge request rejected successfully.', request });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// 18. GET /customer/logs - Fetch customer governance logs
+router.get('/customer/logs', async (req, res) => {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+    const total = await CustomerGovernanceLog.countDocuments();
+    const logs = await CustomerGovernanceLog.find()
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({ timestamp: -1 });
+
+    res.json({ logs, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// 19. GET /customer/purge/audit-logs - Fetch purge audit logs
+router.get('/customer/purge/audit-logs', async (req, res) => {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+    const total = await CustomerPurgeAuditLog.countDocuments();
+    const logs = await CustomerPurgeAuditLog.find()
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({ executionTimestamp: -1 });
 
     res.json({ logs, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
   } catch (err) {
