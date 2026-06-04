@@ -9,6 +9,7 @@ import Footer from './components/layout/Footer'
 import CustomCursor from "./components/ui/CustomCursor"
 import ProtectedRoute from './components/ui/ProtectedRoute'
 import AdminRoute from './components/ui/AdminRoute'
+import SuperAdminRoute from './components/ui/SuperAdminRoute'
 import WhatsAppButton from './components/ui/WhatsAppButton'
 
 // Lazy-loaded page components for route splitting & bundle optimization
@@ -33,6 +34,7 @@ const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const AdminProducts  = lazy(() => import('./pages/admin/AdminProducts'))
 const AdminOrders    = lazy(() => import('./pages/admin/AdminOrders'))
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'))
+const AdminGovernance = lazy(() => import('./pages/admin/AdminGovernance'))
 
 // Premium Glassmorphic Loading Screen
 const LoadingFallback = () => (
@@ -101,6 +103,7 @@ export default function App() {
     '/admin/products',
     '/admin/orders',
     '/admin/analytics',
+    '/admin/administration',
   ]
 
   const is404 =
@@ -150,7 +153,12 @@ export default function App() {
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/products" element={<AdminProducts />} />
                 <Route path="/admin/orders" element={<AdminOrders />} />
+              </Route>
+
+              {/* Super Admin */}
+              <Route element={<SuperAdminRoute />}>
                 <Route path="/admin/analytics" element={<AdminAnalytics />} />
+                <Route path="/admin/administration" element={<AdminGovernance />} />
               </Route>
 
               {/* 404 */}

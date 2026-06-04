@@ -19,16 +19,19 @@ import {
   ArrowRight,
   BadgePercent,
   Trash2,
+  Shield,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
 import BASE_URL from '../../utils/api'
+import { useAuth } from '../../context/AuthContext'
 
 const API = BASE_URL
 
 export default function AdminDashboard() {
+  const { user } = useAuth()
   const [stats, setStats] = useState({ products: 0, orders: 0 })
   const [products, setProducts] = useState([])
   const [orders, setOrders] = useState([])
@@ -44,19 +47,46 @@ export default function AdminDashboard() {
   })
   const [exporting, setExporting] = useState(false)
   const [savingCoupon, setSavingCoupon] = useState(false)
+  const [needsBootstrap, setNeedsBootstrap] = useState(false)
+  const [bootstrapReason, setBootstrapReason] = useState('')
+  const [showBootstrapModal, setShowBootstrapModal] = useState(false)
+  const [bootstrapping, setBootstrapping] = useState(false)
+
+  const handleBootstrap = async (e) => {
+    e.preventDefault()
+    if (bootstrapReason.trim().length < 20 || bootstrapReason.trim().length > 1000) {
+      return toast.error('Reason must be between 20 and 1000 characters.')
+    }
+    setBootstrapping(true)
+    try {
+      const { data } = await axios.post(`${BASE_URL}/governance/bootstrap`, {
+        reason: bootstrapReason
+      }, { withCredentials: true })
+      toast.success(data.message)
+      setNeedsBootstrap(false)
+      setShowBootstrapModal(false)
+      window.location.reload()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bootstrapping failed')
+    } finally {
+      setBootstrapping(false)
+    }
+  }
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [p, o, c] = await Promise.all([
+        const [p, o, c, b] = await Promise.all([
           axios.get(`${API}/products?limit=1000`, { withCredentials: true }),
           axios.get(`${API}/orders`, { withCredentials: true }),
           axios.get(`${API}/coupons`, { withCredentials: true }),
+          axios.get(`${BASE_URL}/governance/check-bootstrap`, { withCredentials: true }),
         ])
 
         setProducts(p.data.products || [])
         setOrders(o.data.orders || [])
         setCoupons(c.data.coupons || [])
+        setNeedsBootstrap(b.data.needsBootstrap)
         setStats({
           products: p.data.total,
           orders: o.data.orders?.length || 0,
@@ -403,6 +433,20 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
+      {needsBootstrap && user?.role === 'admin' && (
+        <div className="mb-6 p-4 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-pulse">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="text-yellow-500" size={24} />
+            <div>
+              <h4 className="font-semibold text-yellow-500 text-sm">System Bootstrapping Needed</h4>
+              <p className="text-xs text-dark-muted mt-0.5">There are no Super Admins registered in the system. As an Admin, you can bootstrap the security hierarchy.</p>
+            </div>
+          </div>
+          <button onClick={() => setShowBootstrapModal(true)} className="btn-primary text-xs py-2 px-4 whitespace-nowrap">
+            Bootstrap System
+          </button>
+        </div>
+      )}
       <div className="mb-8">
         <p className="text-xs text-primary-500 uppercase tracking-widest font-semibold mb-2">Business Command Center</p>
         <h1 className="font-display text-3xl font-bold text-dark-text">Admin Dashboard</h1>
@@ -730,7 +774,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className={`grid grid-cols-1 ${user?.role === 'super_admin' ? 'md:grid-cols-3' : 'sm:grid-cols-2'} gap-4`}>
         <Link to="/admin/products" className="card p-6 hover:border-primary-500/30 hover:shadow-[0_18px_60px_rgba(59,107,255,0.12)] transition-all flex items-center gap-4">
           <div className="w-12 h-12 bg-primary-500/10 rounded-xl flex items-center justify-center">
             <Package size={22} className="text-primary-500" />
@@ -749,7 +793,41 @@ export default function AdminDashboard() {
             <p className="text-dark-muted text-sm">View and update order status</p>
           </div>
         </Link>
+        {user?.role === 'super_admin' && (
+          <Link to="/admin/administration" className="card p-6 hover:border-primary-500/30 hover:shadow-[0_18px_60px_rgba(59,107,255,0.12)] transition-all flex items-center gap-4">
+            <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center">
+              <Shield size={22} className="text-purple-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-dark-text">Governance &amp; Security</p>
+              <p className="text-dark-muted text-sm">Admin RBAC, logs, and approvals</p>
+            </div>
+          </Link>
+        )}
       </div>
+
+      {showBootstrapModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+          <div className="card w-full max-w-md bg-dark-card border-dark-border p-6 shadow-2xl animate-fade-in relative text-left">
+            <h3 className="font-display text-xl font-bold text-dark-text mb-2">Bootstrap Super Admin</h3>
+            <p className="text-xs text-dark-muted mb-4">Set yourself as the primary Super Admin of AUTOCRAFT. This will unlock the governance panels and security logs.</p>
+            <form onSubmit={handleBootstrap} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider mb-2">Bootstrapping Audit Reason (Min 20 characters)</label>
+                <textarea rows="4" required placeholder="Provide a detailed audit reason to register yourself as the first Super Admin..." value={bootstrapReason} onChange={(e) => setBootstrapReason(e.target.value)} className="input-field w-full text-sm p-3 bg-dark-bg text-dark-text border-dark-border" />
+                <div className="flex justify-between items-center text-[10px] text-dark-muted mt-1.5 font-mono">
+                  <span>Min: 20 · Max: 1000</span>
+                  <span className={bootstrapReason.length < 20 ? 'text-red-400 font-bold' : 'text-green-400'}>Length: {bootstrapReason.length} chars</span>
+                </div>
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" onClick={() => setShowBootstrapModal(false)} className="btn-outline text-xs px-4 py-2">Cancel</button>
+                <button type="submit" disabled={bootstrapping || bootstrapReason.length < 20} className="btn-primary text-xs px-4 py-2 disabled:opacity-50">{bootstrapping ? 'Processing...' : 'Bootstrap Now'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

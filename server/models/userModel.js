@@ -6,7 +6,8 @@ const userSchema = new mongoose.Schema({
   email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, minlength: 6, select: false },
   phone:    { type: String, trim: true },
-  role:     { type: String, enum: ['customer', 'admin'], default: 'customer' },
+  role:     { type: String, enum: ['customer', 'admin', 'super_admin'], default: 'customer' },
+  status:   { type: String, enum: ['active', 'disabled'], default: 'active' },
   avatar:   { type: String, default: '' },
   googleId: String,
   addresses: [{
@@ -32,6 +33,8 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 userSchema.index({ googleId: 1 }, { sparse: true });
+userSchema.index({ role: 1 });
+userSchema.index({ status: 1 });
 
 /* ✅ FIXED PRE SAVE HOOK */
 userSchema.pre('save', async function () {

@@ -4,6 +4,7 @@ import Product from '../models/productModel.js';
 import User from '../models/userModel.js';
 import Coupon from '../models/couponModel.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { logAdminActivity } from '../utils/auditLogger.js';
 import sendEmail from '../utils/sendEmail.js';
 import { deductInventoryForOrder, releaseExpiredPendingOrders } from '../utils/orderInventory.js';
 import { calculateDiscount, validateCoupon } from './couponRoutes.js';
@@ -252,6 +253,12 @@ router.put('/:id/tracking', protect, adminOnly, async (req, res) => {
     };
 
     await order.save();
+    await logAdminActivity(req, {
+      action: 'SHARE_TRACKING',
+      targetType: 'order',
+      targetId: order._id.toString(),
+      details: `Shared tracking details for order #${order._id} (Courier: ${order.trackingInfo.courierName}, ID: ${order.trackingInfo.trackingId})`
+    });
 
     try {
       if (order.user?.email) {
@@ -306,6 +313,12 @@ router.put('/:id/return-status', protect, adminOnly, async (req, res) => {
     });
 
     await order.save();
+    await logAdminActivity(req, {
+      action: 'UPDATE_RETURN_STATUS',
+      targetType: 'order',
+      targetId: order._id.toString(),
+      details: `Updated return status for order #${order._id} to "${status}"`
+    });
 
     if (status === 'approved') {
       await socketNotifyCustomer({
@@ -371,7 +384,7 @@ router.get('/:id', protect, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id).populate('user', 'name email phone');
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (order.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    if (order.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({ message: 'Not authorized' });
     }
     res.json({ order });
@@ -424,6 +437,12 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
     }
 
     await order.save();
+    await logAdminActivity(req, {
+      action: 'UPDATE_ORDER_STATUS',
+      targetType: 'order',
+      targetId: order._id.toString(),
+      details: `Updated order #${order._id} status to "${requestedStatus}" (previous: "${prevStatus}")`
+    });
 
     if (requestedStatus === 'shipped') {
       await socketNotifyCustomer({
@@ -490,6 +509,12 @@ router.put('/:id/pay-status', protect, adminOnly, async (req, res) => {
     order.isPaid = Boolean(req.body.isPaid);
     order.paidAt = req.body.isPaid ? new Date() : undefined;
     await order.save();
+    await logAdminActivity(req, {
+      action: 'UPDATE_PAYMENT_STATUS',
+      targetType: 'order',
+      targetId: order._id.toString(),
+      details: `Marked order #${order._id} payment status as "${order.isPaid ? 'Paid' : 'Unpaid'}"`
+    });
 
     res.json({ order, message: `Order payment marked as ${order.isPaid ? 'Paid' : 'Unpaid'}` });
   } catch (error) {
@@ -503,6 +528,12 @@ router.put('/:id/bill', protect, adminOnly, async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
     order.billUrl = req.body.billUrl;
     await order.save();
+    await logAdminActivity(req, {
+      action: 'UPLOAD_BILL',
+      targetType: 'order',
+      targetId: order._id.toString(),
+      details: `Uploaded billing invoice for order #${order._id}`
+    });
     res.json({ order, message: 'Bill uploaded successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

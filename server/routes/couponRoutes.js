@@ -1,6 +1,7 @@
 import express from 'express';
 import Coupon from '../models/couponModel.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { logAdminActivity } from '../utils/auditLogger.js';
 
 const router = express.Router();
 
@@ -71,6 +72,12 @@ router.post('/', protect, adminOnly, async (req, res) => {
     };
 
     const coupon = await Coupon.create(payload);
+    await logAdminActivity(req, {
+      action: 'ADD_COUPON',
+      targetType: 'coupon',
+      targetId: coupon._id.toString(),
+      details: `Created discount coupon "${coupon.code}" (${coupon.type}: ${coupon.value})`
+    });
     res.status(201).json({ coupon });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -91,6 +98,12 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 
     const coupon = await Coupon.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
     if (!coupon) return res.status(404).json({ message: 'Coupon not found' });
+    await logAdminActivity(req, {
+      action: 'EDIT_COUPON',
+      targetType: 'coupon',
+      targetId: coupon._id.toString(),
+      details: `Updated coupon "${coupon.code}" details`
+    });
     res.json({ coupon });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -101,6 +114,12 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {
     const coupon = await Coupon.findByIdAndDelete(req.params.id);
     if (!coupon) return res.status(404).json({ message: 'Coupon not found' });
+    await logAdminActivity(req, {
+      action: 'DELETE_COUPON',
+      targetType: 'coupon',
+      targetId: req.params.id,
+      details: `Deleted coupon "${coupon.code}"`
+    });
     res.json({ message: 'Coupon deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

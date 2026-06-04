@@ -264,10 +264,13 @@ export default function Navbar() {
                         <hr className="border-dark-border my-1" />
                         <Link to="/profile"   onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-dark-text hover:bg-dark-border/50 rounded-lg transition-colors">My Profile</Link>
                         <Link to="/my-orders" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-dark-text hover:bg-dark-border/50 rounded-lg transition-colors">My Orders</Link>
-                        {user.role === 'admin' && (
+                        {(user.role === 'admin' || user.role === 'super_admin') && (
+                          <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Admin Panel</Link>
+                        )}
+                        {user.role === 'super_admin' && (
                           <>
-                            <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Admin Panel</Link>
                             <Link to="/admin/analytics" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Analytics BI</Link>
+                            <Link to="/admin/administration" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Administration</Link>
                           </>
                         )}
                         <hr className="border-dark-border my-1" />
@@ -341,10 +344,13 @@ export default function Navbar() {
                   <Link to="/profile" onClick={() => setMobileOpen(false)} className="block py-2 text-dark-text hover:text-primary-500 transition-colors">My Profile</Link>
                   <Link to="/my-orders" onClick={() => setMobileOpen(false)} className="block py-2 text-dark-text hover:text-primary-500 transition-colors">My Orders</Link>
                   <Link to="/wishlist" onClick={() => setMobileOpen(false)} className="block py-2 text-dark-text hover:text-primary-500 transition-colors">Wishlist</Link>
-                  {user.role === 'admin' && (
+                  {(user.role === 'admin' || user.role === 'super_admin') && (
+                    <Link to="/admin" onClick={() => setMobileOpen(false)} className="block py-2 text-accent-400 hover:text-accent-300 transition-colors">Admin Panel</Link>
+                  )}
+                  {user.role === 'super_admin' && (
                     <>
-                      <Link to="/admin" onClick={() => setMobileOpen(false)} className="block py-2 text-accent-400 hover:text-accent-300 transition-colors">Admin Panel</Link>
                       <Link to="/admin/analytics" onClick={() => setMobileOpen(false)} className="block py-2 text-accent-400 hover:text-accent-300 transition-colors">Analytics BI</Link>
+                      <Link to="/admin/administration" onClick={() => setMobileOpen(false)} className="block py-2 text-accent-400 hover:text-accent-300 transition-colors">Administration</Link>
                     </>
                   )}
                   <hr className="border-dark-border" />

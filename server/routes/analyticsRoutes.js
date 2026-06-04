@@ -1,6 +1,6 @@
 import express from 'express';
 import geoip from 'geoip-lite';
-import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { protect, adminOnly, superAdminOnly } from '../middleware/authMiddleware.js';
 import { localCache } from '../utils/cache.js';
 import {
   AnalyticsEvent,
@@ -183,7 +183,7 @@ router.post('/track', async (req, res) => {
 });
 
 // 2. ADMIN ONLY: Get Heatmap Settings
-router.get('/settings', protect, adminOnly, async (req, res) => {
+router.get('/settings', protect, superAdminOnly, async (req, res) => {
   try {
     let settings = await AnalyticsSettings.findOne();
     if (!settings) {
@@ -200,7 +200,7 @@ router.get('/settings', protect, adminOnly, async (req, res) => {
 });
 
 // 3. ADMIN ONLY: Update Analytics Settings
-router.put('/settings', protect, adminOnly, async (req, res) => {
+router.put('/settings', protect, superAdminOnly, async (req, res) => {
   try {
     const { retentionDays, heatmapEnabled, trackingSampleRate } = req.body;
     let settings = await AnalyticsSettings.findOne();
@@ -223,7 +223,7 @@ router.put('/settings', protect, adminOnly, async (req, res) => {
 });
 
 // 4. ADMIN ONLY: Executive Dashboard Stats (KPIs)
-router.get('/dashboard-stats', protect, adminOnly, async (req, res) => {
+router.get('/dashboard-stats', protect, superAdminOnly, async (req, res) => {
   try {
     const cacheKey = 'analytics:dashboard-stats';
     const cachedStats = localCache.get(cacheKey);
@@ -373,7 +373,7 @@ router.get('/dashboard-stats', protect, adminOnly, async (req, res) => {
 });
 
 // 5. ADMIN ONLY: Sales Analytics Details
-router.get('/sales-analytics', protect, adminOnly, async (req, res) => {
+router.get('/sales-analytics', protect, superAdminOnly, async (req, res) => {
   try {
     const { period = 'monthly' } = req.query; // daily, weekly, monthly, quarterly, yearly
     const cacheKey = `analytics:sales:${period}`;
@@ -526,7 +526,7 @@ router.get('/sales-analytics', protect, adminOnly, async (req, res) => {
 });
 
 // 6. ADMIN ONLY: Conversion Funnel Analytics
-router.get('/funnel-analytics', protect, adminOnly, async (req, res) => {
+router.get('/funnel-analytics', protect, superAdminOnly, async (req, res) => {
   try {
     const cacheKey = 'analytics:funnel';
     const cachedData = localCache.get(cacheKey);
@@ -596,7 +596,7 @@ router.get('/funnel-analytics', protect, adminOnly, async (req, res) => {
 });
 
 // 7. ADMIN ONLY: Product Performance Analytics
-router.get('/product-analytics', protect, adminOnly, async (req, res) => {
+router.get('/product-analytics', protect, superAdminOnly, async (req, res) => {
   try {
     const cacheKey = 'analytics:products-report';
     const cachedData = localCache.get(cacheKey);
@@ -735,7 +735,7 @@ router.get('/product-analytics', protect, adminOnly, async (req, res) => {
 });
 
 // 8. ADMIN ONLY: Customer Segmentation & Cohorts
-router.get('/customer-analytics', protect, adminOnly, async (req, res) => {
+router.get('/customer-analytics', protect, superAdminOnly, async (req, res) => {
   try {
     const cacheKey = 'analytics:customers';
     const cachedData = localCache.get(cacheKey);
@@ -837,7 +837,7 @@ router.get('/customer-analytics', protect, adminOnly, async (req, res) => {
 });
 
 // 9. ADMIN ONLY: Location Analytics (Country, State, City groupings)
-router.get('/location-analytics', protect, adminOnly, async (req, res) => {
+router.get('/location-analytics', protect, superAdminOnly, async (req, res) => {
   try {
     const cacheKey = 'analytics:location';
     const cachedData = localCache.get(cacheKey);
@@ -912,7 +912,7 @@ router.get('/location-analytics', protect, adminOnly, async (req, res) => {
 });
 
 // 10. ADMIN ONLY: Traffic Source & Campaign Analytics
-router.get('/traffic-analytics', protect, adminOnly, async (req, res) => {
+router.get('/traffic-analytics', protect, superAdminOnly, async (req, res) => {
   try {
     const cacheKey = 'analytics:traffic';
     const cachedData = localCache.get(cacheKey);
@@ -1009,7 +1009,7 @@ router.get('/traffic-analytics', protect, adminOnly, async (req, res) => {
 });
 
 // 11. ADMIN ONLY: Heatmap Aggregated Points
-router.get('/heatmap-analytics', protect, adminOnly, async (req, res) => {
+router.get('/heatmap-analytics', protect, superAdminOnly, async (req, res) => {
   try {
     const { page = '/', type = 'click' } = req.query;
     const cacheKey = `analytics:heatmap:${page}:${type}`;
@@ -1031,7 +1031,7 @@ router.get('/heatmap-analytics', protect, adminOnly, async (req, res) => {
 });
 
 // 12. ADMIN ONLY: Search Keywords Analytics
-router.get('/search-analytics', protect, adminOnly, async (req, res) => {
+router.get('/search-analytics', protect, superAdminOnly, async (req, res) => {
   try {
     const cacheKey = 'analytics:search';
     const cachedData = localCache.get(cacheKey);
@@ -1059,7 +1059,7 @@ router.get('/search-analytics', protect, adminOnly, async (req, res) => {
 });
 
 // 13. ADMIN ONLY: Inventory Intelligence & Health Reports
-router.get('/inventory-analytics', protect, adminOnly, async (req, res) => {
+router.get('/inventory-analytics', protect, superAdminOnly, async (req, res) => {
   try {
     const cacheKey = 'analytics:inventory-health';
     const cachedData = localCache.get(cacheKey);
@@ -1164,7 +1164,7 @@ router.get('/inventory-analytics', protect, adminOnly, async (req, res) => {
 });
 
 // 14. ADMIN ONLY: Order Fulfillment Analytics
-router.get('/order-analytics', protect, adminOnly, async (req, res) => {
+router.get('/order-analytics', protect, superAdminOnly, async (req, res) => {
   try {
     const cacheKey = 'analytics:orders-performance';
     const cachedData = localCache.get(cacheKey);
@@ -1231,7 +1231,7 @@ router.get('/order-analytics', protect, adminOnly, async (req, res) => {
 });
 
 // 15. ADMIN ONLY: Marketing & Coupon Intelligence
-router.get('/marketing-analytics', protect, adminOnly, async (req, res) => {
+router.get('/marketing-analytics', protect, superAdminOnly, async (req, res) => {
   try {
     const cacheKey = 'analytics:marketing';
     const cachedData = localCache.get(cacheKey);
@@ -1268,7 +1268,7 @@ router.get('/marketing-analytics', protect, adminOnly, async (req, res) => {
 });
 
 // 16. ADMIN ONLY: Trigger Manual Database Pruning
-router.post('/cleanup', protect, adminOnly, async (req, res) => {
+router.post('/cleanup', protect, superAdminOnly, async (req, res) => {
   try {
     let settings = await AnalyticsSettings.findOne();
     const retentionDays = settings?.retentionDays || 90;

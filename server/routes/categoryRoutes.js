@@ -3,6 +3,7 @@ import Category, { ensureDefaultCategories, slugifyCategory } from '../models/ca
 import Product from '../models/productModel.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import { localCache } from '../utils/cache.js';
+import { logAdminActivity } from '../utils/auditLogger.js';
 
 const router = express.Router();
 
@@ -78,6 +79,12 @@ router.post('/', protect, adminOnly, async (req, res) => {
     }
 
     const category = await Category.create(payload);
+    await logAdminActivity(req, {
+      action: 'ADD_CATEGORY',
+      targetType: 'category',
+      targetId: category._id.toString(),
+      details: `Created product category "${category.name}"`
+    });
     localCache.clearByPrefix('categories');
 
     res.status(201).json({ category });
@@ -107,6 +114,13 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 
     if (!category) return res.status(404).json({ message: 'Category not found' });
 
+    await logAdminActivity(req, {
+      action: 'EDIT_CATEGORY',
+      targetType: 'category',
+      targetId: category._id.toString(),
+      details: `Updated category "${category.name}" details`
+    });
+
     localCache.clearByPrefix('categories');
     res.json({ category });
   } catch (error) {
@@ -127,6 +141,12 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
     }
 
     await category.deleteOne();
+    await logAdminActivity(req, {
+      action: 'DELETE_CATEGORY',
+      targetType: 'category',
+      targetId: category._id.toString(),
+      details: `Deleted product category "${category.name}"`
+    });
     localCache.clearByPrefix('categories');
 
     res.json({ message: 'Category deleted successfully' });

@@ -21,6 +21,7 @@ import couponRoutes      from './routes/couponRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import categoryRoutes    from './routes/categoryRoutes.js';
 import analyticsRoutes   from './routes/analyticsRoutes.js';
+import governanceRoutes  from './routes/governanceRoutes.js';
 
 import { sanitizeInput } from './middleware/sanitizeMiddleware.js';
 import { apiLimiter, authLimiter, passwordResetLimiter } from './middleware/rateLimitMiddleware.js';
@@ -112,6 +113,7 @@ app.use('/api/coupons',        couponRoutes);
 app.use('/api/notifications',  notificationRoutes);
 app.use('/api/categories',     categoryRoutes);
 app.use('/api/analytics',      analyticsRoutes);
+app.use('/api/governance',     governanceRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'AUTOCRAFT server running' });

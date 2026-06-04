@@ -5,6 +5,7 @@ import sendEmail from '../utils/sendEmail.js';
 import { validatePassword } from '../utils/passwordValidator.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { logSecurityEvent } from '../utils/auditLogger.js';
 
 // Store OTPs temporarily in memory (use Redis in production)
 const otpStore = new Map();
@@ -212,15 +213,58 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email }).select('+password');
 
     if (!user || !user.password) {
+      await logSecurityEvent(req, {
+        actorId: null,
+        actorName: 'Guest',
+        action: 'FAILED_LOGIN',
+        status: 'failed',
+        reason: `Login failed: Email not registered or password missing (${email})`
+      });
       return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    if (user.status === 'disabled') {
+      await logSecurityEvent(req, {
+        actorId: user._id,
+        actorName: user.name,
+        action: 'FAILED_LOGIN',
+        status: 'failed',
+        reason: 'Login blocked: Account is disabled'
+      });
+      return res.status(403).json({ message: 'This account has been disabled. Please contact support.' });
     }
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
+      await logSecurityEvent(req, {
+        actorId: user._id,
+        actorName: user.name,
+        action: 'FAILED_LOGIN',
+        status: 'failed',
+        reason: 'Login failed: Incorrect password'
+      });
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     const token = await generateToken(res, user);
+
+    if (user.role === 'admin') {
+      await logSecurityEvent(req, {
+        actorId: user._id,
+        actorName: user.name,
+        action: 'ADMIN_LOGIN',
+        status: 'success',
+        reason: 'Admin logged in successfully'
+      });
+    } else if (user.role === 'super_admin') {
+      await logSecurityEvent(req, {
+        actorId: user._id,
+        actorName: user.name,
+        action: 'SUPER_ADMIN_LOGIN',
+        status: 'success',
+        reason: 'Super Admin logged in successfully'
+      });
+    }
 
     res.json({
       message: 'Login successful',

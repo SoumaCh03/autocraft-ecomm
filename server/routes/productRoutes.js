@@ -7,6 +7,7 @@ import { notifyAllAdmins } from '../utils/notificationEmitter.js';
 import variantRoutes from './variantRoutes.js';
 import { localCache } from '../utils/cache.js';
 import Category, { ensureDefaultCategories, slugifyCategory } from '../models/categoryModel.js';
+import { logAdminActivity } from '../utils/auditLogger.js';
 
 const router = express.Router();
 
@@ -245,6 +246,12 @@ router.post('/', protect, adminOnly, async (req, res) => {
     if (error) return res.status(400).json({ message: error });
 
     const product = await Product.create(req.body);
+    await logAdminActivity(req, {
+      action: 'ADD_PRODUCT',
+      targetType: 'product',
+      targetId: product._id.toString(),
+      details: `Created product "${product.name}" with price ₹${product.price} and stock ${product.stock}`
+    });
     localCache.clearByPrefix('products'); // Invalidate product caches
     res.status(201).json({ product });
   } catch (error) {
@@ -265,6 +272,13 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 
     previousProduct.set(req.body);
     const product = await previousProduct.save();
+
+    await logAdminActivity(req, {
+      action: 'EDIT_PRODUCT',
+      targetType: 'product',
+      targetId: product._id.toString(),
+      details: `Updated product "${product.name}" details`
+    });
 
     if (previousStock <= 0 && product.stock > 0) {
       await notifyBackInStockSubscribers(product);
@@ -298,6 +312,12 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
+    await logAdminActivity(req, {
+      action: 'DELETE_PRODUCT',
+      targetType: 'product',
+      targetId: req.params.id,
+      details: `Deleted product "${product.name}"`
+    });
     localCache.clearByPrefix('products'); // Invalidate product caches
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {

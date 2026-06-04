@@ -21,6 +21,11 @@ export const protect = async (req, res, next) => {
         return res.status(401).json({ message: 'Not authorized, user not found' });
       }
 
+      if (user.status === 'disabled') {
+        clearToken(res);
+        return res.status(401).json({ message: 'This account has been disabled. Please contact support.' });
+      }
+
       req.user = user;
       req.token = token;
       return next();
@@ -64,6 +69,11 @@ const handleTokenRefresh = async (req, res, next) => {
       return res.status(401).json({ message: 'Not authorized, session expired or revoked' });
     }
 
+    if (user.status === 'disabled') {
+      clearToken(res);
+      return res.status(401).json({ message: 'This account has been disabled. Please contact support.' });
+    }
+
     // Revoke the old refresh token (implementing refresh token rotation)
     await User.findByIdAndUpdate(user._id, {
       $pull: { refreshTokens: { token: hashedRefresh } }
@@ -84,13 +94,26 @@ const handleTokenRefresh = async (req, res, next) => {
 
 export const adminOnly = (req, res, next) => {
   try {
-    if (req.user && req.user.role === 'admin') {
+    if (req.user && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
       return next(); // ✅ ensured return
     }
 
     return res.status(403).json({ message: 'Admin access only' });
   } catch (error) {
     console.log('ADMIN MIDDLEWARE ERROR:', error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const superAdminOnly = (req, res, next) => {
+  try {
+    if (req.user && req.user.role === 'super_admin') {
+      return next();
+    }
+
+    return res.status(403).json({ message: 'Super Admin access only' });
+  } catch (error) {
+    console.log('SUPER ADMIN MIDDLEWARE ERROR:', error);
     return res.status(500).json({ message: 'Server error' });
   }
 };
