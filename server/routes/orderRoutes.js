@@ -12,6 +12,7 @@ import {
   notifyAllAdmins,
   notifyCustomer as socketNotifyCustomer,
 } from '../utils/notificationEmitter.js';
+import AbandonedCheckout from '../models/abandonedCheckoutModel.js';
 
 const router = express.Router();
 
@@ -76,6 +77,32 @@ router.post('/', protect, async (req, res) => {
       // Reserve stock immediately to prevent double-selling under heavy traffic
       await deductInventoryForOrder(order);
       await order.save();
+
+      // Convert matching pending abandoned checkouts to converted
+      try {
+        const sessionId = req.body.sessionId;
+        const checkoutQuery = {
+          status: { $ne: 'converted' },
+          $or: [
+            { userId: req.user._id }
+          ]
+        };
+        if (sessionId) {
+          checkoutQuery.$or.push({ sessionId });
+        }
+        await AbandonedCheckout.updateMany(checkoutQuery, {
+          $set: {
+            status: 'converted',
+            lastStage: 'order_created',
+            lastActivity: new Date()
+          },
+          $push: {
+            timeline: { stage: 'order_created', timestamp: new Date() }
+          }
+        });
+      } catch (chkErr) {
+        console.log('Abandoned checkout auto conversion error:', chkErr.message);
+      }
     } catch (invErr) {
       // Rollback order document if stock allocation fails
       await Order.findByIdAndDelete(order._id);

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { trackEvent } from '../utils/analytics'
 import { motion } from 'framer-motion'
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, BadgePercent, X } from 'lucide-react'
 import axios from 'axios'
@@ -22,6 +23,24 @@ export default function CartPage() {
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [discount, setDiscount] = useState(0)
   const [couponLoading, setCouponLoading] = useState(false)
+
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      trackEvent('checkout_stage', {
+        stage: 'cart',
+        cartSnapshot: cartItems.map(item => ({
+          product: item._id,
+          name: item.name,
+          qty: item.qty,
+          price: item.price,
+          image: item.images?.[0] || '',
+          selectedVariant: item.selectedVariant ? { id: item.selectedVariant._id, name: item.selectedVariant.name } : undefined
+        })),
+        cartValue: cartTotal,
+        itemsCount: cartItems.reduce((acc, item) => acc + item.qty, 0)
+      });
+    }
+  }, []);
 
   const shipping = cartTotal >= 999 ? 0 : 99
   const grandTotal = Math.max(0, cartTotal - discount + shipping)

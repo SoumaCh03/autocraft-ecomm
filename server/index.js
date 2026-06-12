@@ -22,6 +22,8 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import categoryRoutes    from './routes/categoryRoutes.js';
 import analyticsRoutes   from './routes/analyticsRoutes.js';
 import governanceRoutes  from './routes/governanceRoutes.js';
+import visitorAnalyticsRoutes from './routes/visitorAnalyticsRoutes.js';
+import abandonedCheckoutRoutes from './routes/abandonedCheckoutRoutes.js';
 
 import { sanitizeInput } from './middleware/sanitizeMiddleware.js';
 import { apiLimiter, authLimiter, passwordResetLimiter } from './middleware/rateLimitMiddleware.js';
@@ -29,9 +31,11 @@ import { apiLimiter, authLimiter, passwordResetLimiter } from './middleware/rate
 import { initNotificationSocket } from './sockets/notificationSocket.js';
 import { initNotificationEmitter } from './utils/notificationEmitter.js';
 import { startAnalyticsCleanupJob } from './utils/analyticsCleanup.js';
+import { startAbandonedCheckoutJob } from './utils/visitorTracker.js';
 
 connectDB();
 startAnalyticsCleanupJob();
+startAbandonedCheckoutJob();
 
 const app = express();
 
@@ -114,6 +118,8 @@ app.use('/api/notifications',  notificationRoutes);
 app.use('/api/categories',     categoryRoutes);
 app.use('/api/analytics',      analyticsRoutes);
 app.use('/api/governance',     governanceRoutes);
+app.use('/api/visitor-analytics', visitorAnalyticsRoutes);
+app.use('/api/abandoned-checkouts', abandonedCheckoutRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'AUTOCRAFT server running' });

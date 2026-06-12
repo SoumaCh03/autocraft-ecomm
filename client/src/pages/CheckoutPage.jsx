@@ -34,9 +34,51 @@ export default function CheckoutPage() {
       couponCode,
       grandTotal
     })
+
+    trackEvent('checkout_stage', {
+      stage: 'checkout_started',
+      cartSnapshot: cartItems.map(item => ({
+        product: item._id,
+        name: item.name,
+        qty: item.qty,
+        price: item.price,
+        image: item.images?.[0] || '',
+        selectedVariant: item.selectedVariant ? { id: item.selectedVariant._id, name: item.selectedVariant.name } : undefined
+      })),
+      cartValue: cartTotal,
+      itemsCount: cartItems.reduce((acc, item) => acc + item.qty, 0)
+    })
   }, [])
   
   const [paymentMethod, setPaymentMethod] = useState('razorpay')
+  const [addressTracked, setAddressTracked] = useState(false)
+
+  const handlePaymentMethodSelect = (method) => {
+    setPaymentMethod(method)
+    trackEvent('checkout_stage', {
+      stage: 'payment_method_selected',
+      paymentMethod: method
+    })
+  }
+
+  useEffect(() => {
+    const { name, phone, street, city, state: st, pincode } = address
+    if (name && phone && street && city && st && pincode && !addressTracked) {
+      trackEvent('checkout_stage', {
+        stage: 'address_selected',
+        name,
+        phone,
+        shippingAddress: address
+      })
+
+      trackEvent('checkout_stage', {
+        stage: 'payment_page_opened',
+        paymentMethod
+      })
+
+      setAddressTracked(true)
+    }
+  }, [address, addressTracked, paymentMethod])
 
   const codFee =
     paymentMethod === 'cod'
@@ -103,6 +145,14 @@ export default function CheckoutPage() {
       couponCode
     })
 
+    trackEvent('checkout_stage', {
+      stage: 'payment_attempted',
+      paymentMethod,
+      cartValue: cartTotal,
+      totalPrice: finalTotal,
+      couponCode
+    })
+
     setLoading(true)
 
     // Save address if enabled
@@ -152,9 +202,20 @@ export default function CheckoutPage() {
             couponCode,
             shippingPrice: shipping,
             totalPrice: finalTotal,
+            sessionId: sessionStorage.getItem('autocraft_session_id') || '',
           },
           { withCredentials: true }
         )
+
+        trackEvent('checkout_stage', {
+          stage: 'payment_success',
+          paymentMethod: 'cod',
+          orderId: data.order._id
+        })
+        trackEvent('checkout_stage', {
+          stage: 'order_created',
+          orderId: data.order._id
+        })
 
         clearCart()
 
@@ -191,6 +252,7 @@ export default function CheckoutPage() {
         couponCode,
         shippingPrice:   shipping,
         totalPrice:      finalTotal,
+        sessionId:       sessionStorage.getItem('autocraft_session_id') || '',
       }, { withCredentials: true })
 
       // Send orderId instead of amount
@@ -218,6 +280,16 @@ export default function CheckoutPage() {
               ...response,
               orderId: orderData.order._id,
             }, { withCredentials: true })
+
+            trackEvent('checkout_stage', {
+              stage: 'payment_success',
+              paymentMethod: 'razorpay',
+              orderId: orderData.order._id
+            })
+            trackEvent('checkout_stage', {
+              stage: 'order_created',
+              orderId: orderData.order._id
+            })
 
             clearCart()
             navigate('/order-success', { state: { order: verifiedData.order || orderData.order } })
@@ -383,7 +455,7 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     onClick={() =>
-                      setPaymentMethod('razorpay')
+                      handlePaymentMethodSelect('razorpay')
                     }
                     className={`w-full text-left p-4 rounded-2xl border transition-all ${
                       paymentMethod === 'razorpay'
@@ -413,7 +485,7 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     onClick={() =>
-                      setPaymentMethod('cod')
+                      handlePaymentMethodSelect('cod')
                     }
                     className={`w-full text-left p-4 rounded-2xl border transition-all ${
                       paymentMethod === 'cod'

@@ -20,6 +20,7 @@ import {
   BadgePercent,
   Trash2,
   Shield,
+  Users,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import jsPDF from 'jspdf'
@@ -774,7 +775,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className={`grid grid-cols-1 ${user?.role === 'super_admin' ? 'md:grid-cols-3' : 'sm:grid-cols-2'} gap-4`}>
+      <div className={`grid grid-cols-1 ${user?.role === 'super_admin' ? 'grid-cols-2 lg:grid-cols-5' : 'sm:grid-cols-2'} gap-4`}>
         <Link to="/admin/products" className="card p-6 hover:border-primary-500/30 hover:shadow-[0_18px_60px_rgba(59,107,255,0.12)] transition-all flex items-center gap-4">
           <div className="w-12 h-12 bg-primary-500/10 rounded-xl flex items-center justify-center">
             <Package size={22} className="text-primary-500" />
@@ -794,15 +795,35 @@ export default function AdminDashboard() {
           </div>
         </Link>
         {user?.role === 'super_admin' && (
-          <Link to="/admin/administration" className="card p-6 hover:border-primary-500/30 hover:shadow-[0_18px_60px_rgba(59,107,255,0.12)] transition-all flex items-center gap-4">
-            <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center">
-              <Shield size={22} className="text-purple-400" />
-            </div>
-            <div>
-              <p className="font-semibold text-dark-text">Governance &amp; Security</p>
-              <p className="text-dark-muted text-sm">Admin RBAC, logs, and approvals</p>
-            </div>
-          </Link>
+          <>
+            <Link to="/admin/visitor-analytics" className="card p-6 hover:border-primary-500/30 hover:shadow-[0_18px_60px_rgba(59,107,255,0.12)] transition-all flex items-center gap-4">
+              <div className="w-12 h-12 bg-cyan-500/10 rounded-xl flex items-center justify-center">
+                <Users size={22} className="text-cyan-400" />
+              </div>
+              <div>
+                <p className="font-semibold text-dark-text">Visitor Analytics</p>
+                <p className="text-dark-muted text-sm">Track users &amp; sessions</p>
+              </div>
+            </Link>
+            <Link to="/admin/abandoned-checkouts" className="card p-6 hover:border-primary-500/30 hover:shadow-[0_18px_60px_rgba(59,107,255,0.12)] transition-all flex items-center gap-4">
+              <div className="w-12 h-12 bg-orange-500/10 rounded-xl flex items-center justify-center">
+                <ShoppingBag size={22} className="text-orange-400" />
+              </div>
+              <div>
+                <p className="font-semibold text-dark-text">Abandoned Checkouts</p>
+                <p className="text-dark-muted text-sm">Recover checkouts &amp; logs</p>
+              </div>
+            </Link>
+            <Link to="/admin/administration" className="card p-6 hover:border-primary-500/30 hover:shadow-[0_18px_60px_rgba(59,107,255,0.12)] transition-all flex items-center gap-4">
+              <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center">
+                <Shield size={22} className="text-purple-400" />
+              </div>
+              <div>
+                <p className="font-semibold text-dark-text">Governance &amp; Security</p>
+                <p className="text-dark-muted text-sm">Admin RBAC &amp; approvals</p>
+              </div>
+            </Link>
+          </>
         )}
       </div>
 

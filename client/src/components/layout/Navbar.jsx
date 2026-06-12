@@ -270,6 +270,8 @@ export default function Navbar() {
                         {user.role === 'super_admin' && (
                           <>
                             <Link to="/admin/analytics" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Analytics BI</Link>
+                            <Link to="/admin/visitor-analytics" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Visitor Analytics</Link>
+                            <Link to="/admin/abandoned-checkouts" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Abandoned Checkouts</Link>
                             <Link to="/admin/administration" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Administration</Link>
                           </>
                         )}
@@ -350,6 +352,8 @@ export default function Navbar() {
                   {user.role === 'super_admin' && (
                     <>
                       <Link to="/admin/analytics" onClick={() => setMobileOpen(false)} className="block py-2 text-accent-400 hover:text-accent-300 transition-colors">Analytics BI</Link>
+                      <Link to="/admin/visitor-analytics" onClick={() => setMobileOpen(false)} className="block py-2 text-accent-400 hover:text-accent-300 transition-colors">Visitor Analytics</Link>
+                      <Link to="/admin/abandoned-checkouts" onClick={() => setMobileOpen(false)} className="block py-2 text-accent-400 hover:text-accent-300 transition-colors">Abandoned Checkouts</Link>
                       <Link to="/admin/administration" onClick={() => setMobileOpen(false)} className="block py-2 text-accent-400 hover:text-accent-300 transition-colors">Administration</Link>
                     </>
                   )}

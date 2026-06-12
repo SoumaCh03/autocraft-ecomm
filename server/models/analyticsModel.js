@@ -163,6 +163,12 @@ const analyticsSettingsSchema = new mongoose.Schema({
     min: 0,
     max: 100,
   },
+  abandonmentDelayMinutes: {
+    type: Number,
+    default: 30,
+    min: 1,
+    max: 1440,
+  },
 }, { timestamps: true });
 
 const AnalyticsEvent = mongoose.model('AnalyticsEvent', analyticsEventSchema);

@@ -35,6 +35,8 @@ const AdminProducts  = lazy(() => import('./pages/admin/AdminProducts'))
 const AdminOrders    = lazy(() => import('./pages/admin/AdminOrders'))
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'))
 const AdminGovernance = lazy(() => import('./pages/admin/AdminGovernance'))
+const AdminVisitorAnalytics = lazy(() => import('./pages/admin/AdminVisitorAnalytics'))
+const AdminAbandonedCheckouts = lazy(() => import('./pages/admin/AdminAbandonedCheckouts'))
 
 // Premium Glassmorphic Loading Screen
 const LoadingFallback = () => (
@@ -104,6 +106,8 @@ export default function App() {
     '/admin/orders',
     '/admin/analytics',
     '/admin/administration',
+    '/admin/visitor-analytics',
+    '/admin/abandoned-checkouts',
   ]
 
   const is404 =
@@ -159,6 +163,8 @@ export default function App() {
               <Route element={<SuperAdminRoute />}>
                 <Route path="/admin/analytics" element={<AdminAnalytics />} />
                 <Route path="/admin/administration" element={<AdminGovernance />} />
+                <Route path="/admin/visitor-analytics" element={<AdminVisitorAnalytics />} />
+                <Route path="/admin/abandoned-checkouts" element={<AdminAbandonedCheckouts />} />
               </Route>
 
               {/* 404 */}

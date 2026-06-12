@@ -1,5 +1,6 @@
 import express from 'express';
 import geoip from 'geoip-lite';
+import jwt from 'jsonwebtoken';
 import { protect, adminOnly, superAdminOnly } from '../middleware/authMiddleware.js';
 import { localCache } from '../utils/cache.js';
 import {
@@ -13,6 +14,7 @@ import Order from '../models/orderModel.js';
 import User from '../models/userModel.js';
 import Coupon from '../models/couponModel.js';
 import { io } from '../index.js';
+import { trackVisitorSession, trackCheckoutStage } from '../utils/visitorTracker.js';
 
 const router = express.Router();
 
@@ -78,6 +80,18 @@ router.post('/track', async (req, res) => {
     const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
     const location = getGeoIPLocation(clientIp);
 
+    // Decode token to optionally resolve user details for session tracking
+    let resolvedUser = null;
+    try {
+      const token = req.cookies?.token;
+      if (token) {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        resolvedUser = await User.findById(decoded.id).select('-password');
+      }
+    } catch (err) {
+      // Ignore JWT validation errors, run anonymously
+    }
+
     const rawEventLogs = [];
     const realtimeStats = {
       activeVisitors: 1,
@@ -140,10 +154,17 @@ router.post('/track', async (req, res) => {
         continue;
       }
 
+      // Track Visitor Session & Checkout Funnel Details
+      await trackVisitorSession(event, resolvedUser);
+      if (eventType === 'checkout_stage') {
+        await trackCheckoutStage(event, resolvedUser);
+        continue; // Do not insert into raw AnalyticsEvent to avoid validation enum error
+      }
+
       // Prepare Event Log Document
       const eventDoc = {
         sessionID,
-        user: req.user?._id || event.userId || null,
+        user: resolvedUser?._id || req.user?._id || event.userId || null,
         eventType,
         path,
         referrer,
