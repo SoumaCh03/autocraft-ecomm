@@ -154,8 +154,28 @@ export const flushQueue = () => {
   }
 };
 
+const getConsent = () => {
+  if (typeof window === 'undefined') return { essential: true, functional: true, analytics: true, marketing: true };
+  const stored = localStorage.getItem('autocraft_cookie_consent');
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return null;
+  }
+};
+
 export const trackEvent = (eventType, details = {}) => {
   if (typeof window === 'undefined') return;
+
+  // Check consent for optional telemetry (GDPR compliance)
+  const isCheckoutStage = eventType === 'checkout_stage';
+  const consent = getConsent();
+  const isAnalyticsAllowed = consent ? consent.analytics : false;
+
+  if (!isCheckoutStage && !isAnalyticsAllowed) {
+    return; // Block optional tracking
+  }
 
   const eventDoc = {
     visitorID,

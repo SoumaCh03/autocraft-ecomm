@@ -796,7 +796,7 @@ export default function AdminDashboard() {
         </Link>
         {user?.role === 'super_admin' && (
           <>
-            <Link to="/admin/visitor-analytics" className="card p-6 hover:border-primary-500/30 hover:shadow-[0_18px_60px_rgba(59,107,255,0.12)] transition-all flex items-center gap-4">
+            <Link to="/admin/analytics?tab=visitors" className="card p-6 hover:border-primary-500/30 hover:shadow-[0_18px_60px_rgba(59,107,255,0.12)] transition-all flex items-center gap-4">
               <div className="w-12 h-12 bg-cyan-500/10 rounded-xl flex items-center justify-center">
                 <Users size={22} className="text-cyan-400" />
               </div>
@@ -805,7 +805,7 @@ export default function AdminDashboard() {
                 <p className="text-dark-muted text-sm">Track users &amp; sessions</p>
               </div>
             </Link>
-            <Link to="/admin/abandoned-checkouts" className="card p-6 hover:border-primary-500/30 hover:shadow-[0_18px_60px_rgba(59,107,255,0.12)] transition-all flex items-center gap-4">
+            <Link to="/admin/analytics?tab=abandoned" className="card p-6 hover:border-primary-500/30 hover:shadow-[0_18px_60px_rgba(59,107,255,0.12)] transition-all flex items-center gap-4">
               <div className="w-12 h-12 bg-orange-500/10 rounded-xl flex items-center justify-center">
                 <ShoppingBag size={22} className="text-orange-400" />
               </div>

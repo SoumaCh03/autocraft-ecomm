@@ -105,6 +105,15 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event('open-cookie-preferences'))}
+                  className="text-sm text-dark-muted hover:text-primary-500 transition-colors text-left"
+                >
+                  Cookie Preferences
+                </button>
+              </li>
             </ul>
           </div>
 
