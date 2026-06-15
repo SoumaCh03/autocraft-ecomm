@@ -217,7 +217,7 @@ export default function SyncWidget() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-0 glass z-[49] shadow-2xl flex flex-col pt-20 sm:pt-24 overflow-hidden"
+              className="fixed right-0 top-0 bottom-0 w-[90%] md:w-[75%] lg:w-[50%] lg:max-w-[720px] glass z-[49] shadow-2xl flex flex-col pt-20 sm:pt-24 overflow-hidden border-l border-dark-border/40"
             >
 
               {/* Navigation Tabs */}
