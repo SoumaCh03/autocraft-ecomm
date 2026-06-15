@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ShoppingCart, User, Sun, Moon, Menu, X, ChevronDown, Search, Heart, Database } from 'lucide-react'
+import { ShoppingCart, User, Sun, Moon, Menu, X, ChevronDown, Search, Heart } from 'lucide-react'
 import { useTheme } from '../../context/ThemeContext'
 import { useAuth } from '../../context/AuthContext'
 import { useCart } from '../../context/CartContext'
@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import NotificationBell from '../ui/NotificationBell'
 import logo from '../../assets/logo.png'
 import useCategories from '../../hooks/useCategories'
-import { getDeviceDetails } from '../../utils/deviceInfo.js'
+
 
 const CAR_BRANDS = {
   'Maruti Suzuki': ['Swift', 'Baleno', 'Brezza', 'Ertiga', 'Fronx', 'Wagon R' , 'Grand Vitara', 'Jimny', 'Ignis' , 'XL6'],
@@ -41,7 +41,7 @@ export default function Navbar() {
   const [searchQuery,   setSearchQuery]   = useState('')
   const { categories } = useCategories()
   
-  const [isConsoleOpen, setIsConsoleOpen] = useState(false)
+
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -49,14 +49,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  useEffect(() => {
-    const handleToggle = (e) => {
-      setIsConsoleOpen(e.detail.isOpen);
-    };
-    window.addEventListener('sync-console-toggle', handleToggle);
-    setIsConsoleOpen(document.body.classList.contains('sync-console-open'));
-    return () => window.removeEventListener('sync-console-toggle', handleToggle);
-  }, []);
+
 
   const handleLogout = async () => {
     await logout()
@@ -387,140 +380,7 @@ export default function Navbar() {
           )}
         </AnimatePresence>
 
-        {isConsoleOpen && (
-          <div className="absolute right-0 bottom-0 h-16 w-[90%] md:w-[75%] lg:w-[50%] lg:max-w-[720px] glass bg-dark-bg/95 border-l border-b border-dark-border/40 flex items-center justify-between px-6 z-50">
-            {/* Console Title & Device ID */}
-            <div className="flex items-center gap-2 md:gap-3 text-left">
-              <Database className="text-primary-500 w-5 h-5 shrink-0 animate-pulse hidden min-[400px]:block" />
-              <div>
-                <h2 className="font-display font-bold text-dark-text text-sm sm:text-base leading-none">
-                  <span className="hidden sm:inline">Offline Sync Console</span>
-                  <span className="sm:hidden">Offline Sync</span>
-                </h2>
-                <p className="text-[8px] sm:text-[10px] text-dark-muted font-mono tracking-wide mt-0.5 hidden min-[400px]:block">
-                  ID: {getDeviceDetails().deviceId}
-                </p>
-              </div>
-            </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                aria-label="Search products"
-                onClick={() => setSearchOpen(true)}
-                className="p-2 text-dark-muted hover:text-dark-text transition-colors rounded-lg hover:bg-dark-card"
-              >
-                <Search size={18} />
-              </button>
-
-              <button
-                type="button"
-                aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-                onClick={toggleTheme}
-                className="p-2 text-dark-muted hover:text-dark-text transition-colors rounded-lg hover:bg-dark-card"
-              >
-                {isDark ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-
-              <NotificationBell />
-
-              <Link
-                to="/wishlist"
-                aria-label={`View wishlist${wishlist.length > 0 ? `, ${wishlist.length} saved` : ''}`}
-                className="relative p-2 text-dark-muted hover:text-dark-text transition-colors rounded-lg hover:bg-dark-card"
-              >
-                <Heart size={18} />
-                {wishlist.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                    {wishlist.length}
-                  </span>
-                )}
-              </Link>
-
-              <Link
-                to="/cart"
-                aria-label={`View cart${cartCount > 0 ? `, ${cartCount} items` : ''}`}
-                className="relative p-2 text-dark-muted hover:text-dark-text transition-colors rounded-lg hover:bg-dark-card"
-              >
-                <ShoppingCart size={18} />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
-
-              {user ? (
-                <div className="relative">
-                  <button
-                    type="button"
-                    aria-label="Open user menu"
-                    aria-expanded={userMenuOpen}
-                    onClick={() => setUserMenuOpen((p) => !p)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-dark-card transition-colors"
-                  >
-                    <div className="w-7 h-7 bg-primary-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                      {user.name?.[0]?.toUpperCase()}
-                    </div>
-                    <ChevronDown size={14} className="text-dark-muted hidden sm:block" />
-                  </button>
-                  <AnimatePresence>
-                    {userMenuOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 8 }}
-                        className="absolute right-0 top-full mt-1 w-48 glass rounded-2xl p-2 shadow-2xl shadow-black/50 border border-dark-border z-50"
-                      >
-                        <p className="px-3 py-2 text-xs text-dark-muted">{user.email}</p>
-                        <hr className="border-dark-border my-1" />
-                        <Link to="/profile"   onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-dark-text hover:bg-dark-border/50 rounded-lg transition-colors">My Profile</Link>
-                        <Link to="/my-orders" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-dark-text hover:bg-dark-border/50 rounded-lg transition-colors">My Orders</Link>
-                        {(user.role === 'admin' || user.role === 'super_admin') && (
-                          <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Admin Panel</Link>
-                        )}
-                        {user.role === 'super_admin' && (
-                          <>
-                            <Link to="/admin/analytics" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Analytics BI</Link>
-                            <Link to="/admin/analytics?tab=visitors" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Visitor Analytics</Link>
-                            <Link to="/admin/analytics?tab=abandoned" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Abandoned Checkouts</Link>
-                            <Link to="/admin/administration" onClick={() => setUserMenuOpen(false)} className="block px-3 py-2 text-sm text-accent-400 hover:bg-dark-border/50 rounded-lg transition-colors">Administration</Link>
-                          </>
-                        )}
-                        <hr className="border-dark-border my-1" />
-                        <button
-                          type="button"
-                          onClick={handleLogout}
-                          className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-dark-border/50 rounded-lg transition-colors"
-                        >
-                          Logout
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <Link to="/login" className="hidden sm:flex items-center gap-2 btn-primary py-2 px-4 text-sm">
-                  <User size={15} /> Login
-                </Link>
-              )}
-
-              {/* Close Button */}
-              <button
-                type="button"
-                aria-label="Close Offline Sync Console"
-                onClick={() => {
-                  setIsConsoleOpen(false);
-                  window.dispatchEvent(new CustomEvent('sync-console-close'));
-                }}
-                className="w-10 h-10 rounded-xl border border-dark-border/60 hover:bg-dark-border/20 text-dark-muted hover:text-dark-text transition-colors flex items-center justify-center shrink-0 cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-        )}
       </nav>
 
       {/* Search Overlay */}
