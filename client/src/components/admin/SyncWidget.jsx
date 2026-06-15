@@ -40,6 +40,29 @@ export default function SyncWidget() {
   const [pinging, setPinging] = useState(false);
 
   useEffect(() => {
+    // Dispatch toggle event when isOpen changes
+    const event = new CustomEvent('sync-console-toggle', { detail: { isOpen } });
+    window.dispatchEvent(event);
+
+    if (isOpen) {
+      document.body.classList.add('sync-console-open');
+    } else {
+      document.body.classList.remove('sync-console-open');
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    // Listen for close event from navbar
+    const handleClose = () => {
+      setIsOpen(false);
+    };
+    window.addEventListener('sync-console-close', handleClose);
+    return () => {
+      window.removeEventListener('sync-console-close', handleClose);
+    };
+  }, []);
+
+  useEffect(() => {
     // Listen for global connection changes from syncEngine
     const unsubscribe = registerConnectionListener((state) => {
       setConnState(state);
@@ -194,24 +217,8 @@ export default function SyncWidget() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-lg glass z-[49] shadow-2xl flex flex-col border-l border-dark-border"
+              className="fixed inset-0 glass z-[49] shadow-2xl flex flex-col pt-20 sm:pt-24 overflow-hidden"
             >
-              {/* Header */}
-              <div className="p-6 border-b border-dark-border/40 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Database className="text-primary-500 w-5 h-5" />
-                  <div>
-                    <h2 className="font-display font-bold text-dark-text text-base">Offline Sync Console</h2>
-                    <p className="text-[10px] text-dark-muted font-mono tracking-wide">ID: {deviceInfo.deviceId}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-1.5 rounded-lg border border-dark-border/60 hover:bg-dark-border/20 text-dark-muted hover:text-dark-text transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
               {/* Navigation Tabs */}
               <div className="px-6 border-b border-dark-border/20 flex gap-2 pt-2 bg-dark-bg/10">
