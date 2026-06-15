@@ -12,6 +12,8 @@ import AdminRoute from './components/ui/AdminRoute'
 import SuperAdminRoute from './components/ui/SuperAdminRoute'
 import WhatsAppButton from './components/ui/WhatsAppButton'
 import CookieConsent from './components/ui/CookieConsent'
+import SyncWidget from './components/admin/SyncWidget'
+import { useAuth } from './context/AuthContext'
 
 // Lazy-loaded page components for route splitting & bundle optimization
 const HomePage       = lazy(() => import('./pages/HomePage'))
@@ -85,6 +87,7 @@ const ScrollToHash = () => {
 
 export default function App() {
   const { isDark } = useTheme()
+  const { user } = useAuth()
   const location = useLocation()
   useAnalytics()
 
@@ -171,6 +174,7 @@ export default function App() {
         {!is404 && <Footer />}
         {!is404 && <WhatsAppButton />}
         <CookieConsent />
+        {user && (user.role === 'admin' || user.role === 'super_admin') && <SyncWidget />}
       </div>
     </div>
   )

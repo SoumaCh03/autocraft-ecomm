@@ -5,6 +5,7 @@ import User from '../models/userModel.js';
 import Coupon from '../models/couponModel.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import { logAdminActivity } from '../utils/auditLogger.js';
+import { validateEntityVersion } from '../middleware/concurrencyMiddleware.js';
 import sendEmail from '../utils/sendEmail.js';
 import { deductInventoryForOrder, releaseExpiredPendingOrders } from '../utils/orderInventory.js';
 import { calculateDiscount, validateCoupon } from './couponRoutes.js';
@@ -262,7 +263,7 @@ router.post('/:id/return', protect, async (req, res) => {
   }
 });
 
-router.put('/:id/tracking', protect, adminOnly, async (req, res) => {
+router.put('/:id/tracking', protect, adminOnly, validateEntityVersion('Order'), async (req, res) => {
   try {
     const { courierName, trackingId, trackingUrl } = req.body;
     const order = await Order.findById(req.params.id).populate('user', 'name email phone');
@@ -279,6 +280,9 @@ router.put('/:id/tracking', protect, adminOnly, async (req, res) => {
       updatedAt: new Date(),
     };
 
+    if (order.entityVersion) {
+      order.entityVersion.lastModifiedBy = req.user ? req.user._id.toString() : 'system';
+    }
     await order.save();
     await logAdminActivity(req, {
       action: 'SHARE_TRACKING',
@@ -314,7 +318,7 @@ router.put('/:id/tracking', protect, adminOnly, async (req, res) => {
   }
 });
 
-router.put('/:id/return-status', protect, adminOnly, async (req, res) => {
+router.put('/:id/return-status', protect, adminOnly, validateEntityVersion('Order'), async (req, res) => {
   try {
     const { status, adminNote } = req.body;
     const allowed = ['approved', 'rejected', 'received', 'refunded'];
@@ -339,6 +343,9 @@ router.put('/:id/return-status', protect, adminOnly, async (req, res) => {
       date: new Date(),
     });
 
+    if (order.entityVersion) {
+      order.entityVersion.lastModifiedBy = req.user ? req.user._id.toString() : 'system';
+    }
     await order.save();
     await logAdminActivity(req, {
       action: 'UPDATE_RETURN_STATUS',
@@ -429,7 +436,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
   }
 });
 
-router.put('/:id/status', protect, adminOnly, async (req, res) => {
+router.put('/:id/status', protect, adminOnly, validateEntityVersion('Order'), async (req, res) => {
   try {
     const requestedStatus = req.body.status;
     const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
@@ -463,6 +470,9 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
       }
     }
 
+    if (order.entityVersion) {
+      order.entityVersion.lastModifiedBy = req.user ? req.user._id.toString() : 'system';
+    }
     await order.save();
     await logAdminActivity(req, {
       action: 'UPDATE_ORDER_STATUS',
@@ -528,13 +538,17 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
 });
 
 // PUT update payment status (admin only)
-router.put('/:id/pay-status', protect, adminOnly, async (req, res) => {
+router.put('/:id/pay-status', protect, adminOnly, validateEntityVersion('Order'), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
     order.isPaid = Boolean(req.body.isPaid);
     order.paidAt = req.body.isPaid ? new Date() : undefined;
+    
+    if (order.entityVersion) {
+      order.entityVersion.lastModifiedBy = req.user ? req.user._id.toString() : 'system';
+    }
     await order.save();
     await logAdminActivity(req, {
       action: 'UPDATE_PAYMENT_STATUS',
@@ -549,11 +563,15 @@ router.put('/:id/pay-status', protect, adminOnly, async (req, res) => {
   }
 });
 
-router.put('/:id/bill', protect, adminOnly, async (req, res) => {
+router.put('/:id/bill', protect, adminOnly, validateEntityVersion('Order'), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
     order.billUrl = req.body.billUrl;
+    
+    if (order.entityVersion) {
+      order.entityVersion.lastModifiedBy = req.user ? req.user._id.toString() : 'system';
+    }
     await order.save();
     await logAdminActivity(req, {
       action: 'UPLOAD_BILL',

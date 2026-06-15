@@ -26,6 +26,13 @@ const trackingInfoSchema = new mongoose.Schema({
   updatedAt:   { type: Date },
 }, { _id: false });
 
+const entityVersionSchema = new mongoose.Schema({
+  version: { type: Number, default: 1 },
+  lastModifiedTime: { type: Date, default: Date.now },
+  lastModifiedBy: { type: String, default: 'system' },
+  updateToken: { type: String, default: () => new mongoose.Types.ObjectId().toString() }
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema({
   user: {
     type:     mongoose.Schema.Types.ObjectId,
@@ -90,13 +97,33 @@ const orderSchema = new mongoose.Schema({
   billUrl:             { type: String, default: '' },
   invoiceNumber:       { type: String, default: '' },
   invoiceGeneratedAt:  { type: Date },
+  entityVersion:       { type: entityVersionSchema, default: () => ({}) },
 }, { timestamps: true });
 
-orderSchema.pre('save', function () {
+orderSchema.pre('save', function (next) {
   if (!this.invoiceNumber) {
     this.invoiceNumber = `AC-${new Date().getFullYear()}-${this._id.toString().slice(-8).toUpperCase()}`;
     this.invoiceGeneratedAt = new Date();
   }
+
+  if (!this.entityVersion) {
+    this.entityVersion = {
+      version: 1,
+      lastModifiedTime: new Date(),
+      lastModifiedBy: 'system',
+      updateToken: new mongoose.Types.ObjectId().toString()
+    };
+  } else if (this.isModified()) {
+    if (this.isNew) {
+      this.entityVersion.version = 1;
+      this.entityVersion.updateToken = new mongoose.Types.ObjectId().toString();
+    } else {
+      this.entityVersion.version += 1;
+      this.entityVersion.lastModifiedTime = new Date();
+      this.entityVersion.updateToken = new mongoose.Types.ObjectId().toString();
+    }
+  }
+  next();
 });
 
 orderSchema.index({ user: 1, createdAt: -1 });

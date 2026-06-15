@@ -14,45 +14,80 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  const checkAuth = async () => {
-    try {
-      const { data } = await api.get('/auth/me');
+    const checkAuth = async () => {
+      try {
+        const { data } = await api.get('/auth/me');
 
-      setUser(data.user);
-      setToken(data.token);
-    } catch (error) {
-      // 401 is expected when user is not logged in
-      if (error.response?.status !== 401) {
-        console.error('[Auth] Failed to fetch current user:', error);
+        setUser(data.user);
+        setToken(data.token);
+        if (data.user) {
+          localStorage.setItem('autocraft_offline_user', JSON.stringify(data.user));
+          localStorage.setItem('autocraft_offline_token', data.token || '');
+        } else {
+          localStorage.removeItem('autocraft_offline_user');
+          localStorage.removeItem('autocraft_offline_token');
+        }
+      } catch (error) {
+        const isNetworkError = !error.response || error.code === 'ECONNABORTED' || error.message === 'Network Error';
+        if (isNetworkError) {
+          const cachedUser = localStorage.getItem('autocraft_offline_user');
+          const cachedToken = localStorage.getItem('autocraft_offline_token');
+          if (cachedUser) {
+            console.log('[Auth] Network unreachable. Recovered cached session.');
+            setUser(JSON.parse(cachedUser));
+            setToken(cachedToken || null);
+            setLoading(false);
+            return;
+          }
+        }
+
+        if (error.response?.status !== 401) {
+          console.error('[Auth] Failed to fetch current user:', error);
+        }
+
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem('autocraft_offline_user');
+        localStorage.removeItem('autocraft_offline_token');
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setUser(null);
-      setToken(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  checkAuth();
-}, []);
+    checkAuth();
+  }, []);
 
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
     setUser(data.user);
     setToken(data.token);
+    if (data.user) {
+      localStorage.setItem('autocraft_offline_user', JSON.stringify(data.user));
+      localStorage.setItem('autocraft_offline_token', data.token || '');
+    }
     return data;
   };
 
   const logout = async () => {
-    await api.post('/auth/logout');
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      console.warn('[Auth] Server logout failed (offline context):', err.message);
+    }
     setUser(null);
     setToken(null);
+    localStorage.removeItem('autocraft_offline_user');
+    localStorage.removeItem('autocraft_offline_token');
   };
 
   const register = async (formData) => {
     const { data } = await api.post('/auth/register', formData);
     setUser(data.user);
     setToken(data.token);
+    if (data.user) {
+      localStorage.setItem('autocraft_offline_user', JSON.stringify(data.user));
+      localStorage.setItem('autocraft_offline_token', data.token || '');
+    }
     return data;
   };
 

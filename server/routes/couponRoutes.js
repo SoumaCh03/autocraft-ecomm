@@ -2,6 +2,7 @@ import express from 'express';
 import Coupon from '../models/couponModel.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import { logAdminActivity } from '../utils/auditLogger.js';
+import { validateEntityVersion } from '../middleware/concurrencyMiddleware.js';
 
 const router = express.Router();
 
@@ -84,7 +85,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
   }
 });
 
-router.put('/:id', protect, adminOnly, async (req, res) => {
+router.put('/:id', protect, adminOnly, validateEntityVersion('Coupon'), async (req, res) => {
   try {
     const payload = {
       code: String(req.body.code || '').trim().toUpperCase(),
@@ -96,8 +97,15 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
       active: req.body.active !== false,
     };
 
-    const coupon = await Coupon.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
+    const coupon = await Coupon.findById(req.params.id);
     if (!coupon) return res.status(404).json({ message: 'Coupon not found' });
+
+    coupon.set(payload);
+    if (coupon.entityVersion) {
+      coupon.entityVersion.lastModifiedBy = req.user ? req.user._id.toString() : 'system';
+    }
+    await coupon.save();
+
     await logAdminActivity(req, {
       action: 'EDIT_COUPON',
       targetType: 'coupon',

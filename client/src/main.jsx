@@ -11,6 +11,12 @@ import { WishlistProvider } from './context/WishlistContext.jsx'
 import { NotificationProvider } from './context/NotificationContext.jsx'
 import './index.css'
 import './App.css'
+import { initOfflineInterceptor } from './utils/offlineInterceptor.js'
+import { initSyncScheduler } from './utils/syncEngine.js'
+
+// Initialize Offline Mutation Engine and Background Connection Schedulers
+initOfflineInterceptor();
+initSyncScheduler();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

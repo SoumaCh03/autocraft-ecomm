@@ -4,6 +4,7 @@ import Product from '../models/productModel.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import { localCache } from '../utils/cache.js';
 import { logAdminActivity } from '../utils/auditLogger.js';
+import { validateEntityVersion } from '../middleware/concurrencyMiddleware.js';
 
 const router = express.Router();
 
@@ -97,7 +98,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
   }
 });
 
-router.put('/:id', protect, adminOnly, async (req, res) => {
+router.put('/:id', protect, adminOnly, validateEntityVersion('Category'), async (req, res) => {
   try {
     const payload = normalizeCategory(req.body);
     delete payload.slug;
@@ -106,13 +107,14 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ message: 'Category name is required' });
     }
 
-    const category = await Category.findByIdAndUpdate(
-      req.params.id,
-      payload,
-      { new: true, runValidators: true }
-    );
-
+    const category = await Category.findById(req.params.id);
     if (!category) return res.status(404).json({ message: 'Category not found' });
+
+    category.set(payload);
+    if (category.entityVersion) {
+      category.entityVersion.lastModifiedBy = req.user ? req.user._id.toString() : 'system';
+    }
+    await category.save();
 
     await logAdminActivity(req, {
       action: 'EDIT_CATEGORY',

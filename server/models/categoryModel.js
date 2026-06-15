@@ -76,7 +76,37 @@ const categorySchema = new mongoose.Schema({
     type: Number,
     default: 100,
   },
+  entityVersion: {
+    type: new mongoose.Schema({
+      version: { type: Number, default: 1 },
+      lastModifiedTime: { type: Date, default: Date.now },
+      lastModifiedBy: { type: String, default: 'system' },
+      updateToken: { type: String, default: () => new mongoose.Types.ObjectId().toString() }
+    }, { _id: false }),
+    default: () => ({})
+  }
 }, { timestamps: true });
+
+categorySchema.pre('save', function (next) {
+  if (!this.entityVersion) {
+    this.entityVersion = {
+      version: 1,
+      lastModifiedTime: new Date(),
+      lastModifiedBy: 'system',
+      updateToken: new mongoose.Types.ObjectId().toString()
+    };
+  } else if (this.isModified()) {
+    if (this.isNew) {
+      this.entityVersion.version = 1;
+      this.entityVersion.updateToken = new mongoose.Types.ObjectId().toString();
+    } else {
+      this.entityVersion.version += 1;
+      this.entityVersion.lastModifiedTime = new Date();
+      this.entityVersion.updateToken = new mongoose.Types.ObjectId().toString();
+    }
+  }
+  next();
+});
 
 categorySchema.index({ sortOrder: 1, name: 1 });
 

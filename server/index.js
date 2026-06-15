@@ -24,6 +24,7 @@ import analyticsRoutes   from './routes/analyticsRoutes.js';
 import governanceRoutes  from './routes/governanceRoutes.js';
 import visitorAnalyticsRoutes from './routes/visitorAnalyticsRoutes.js';
 import abandonedCheckoutRoutes from './routes/abandonedCheckoutRoutes.js';
+import syncRoutes from './routes/syncRoutes.js';
 
 import { sanitizeInput } from './middleware/sanitizeMiddleware.js';
 import { apiLimiter, authLimiter, passwordResetLimiter } from './middleware/rateLimitMiddleware.js';
@@ -120,6 +121,7 @@ app.use('/api/analytics',      analyticsRoutes);
 app.use('/api/governance',     governanceRoutes);
 app.use('/api/visitor-analytics', visitorAnalyticsRoutes);
 app.use('/api/abandoned-checkouts', abandonedCheckoutRoutes);
+app.use('/api/sync',          syncRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'AUTOCRAFT server running' });

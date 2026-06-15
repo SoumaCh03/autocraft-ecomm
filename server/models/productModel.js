@@ -59,6 +59,7 @@ const variantSchema = new mongoose.Schema({
   },
 
   mrp: {
+
     type: Number,
   },
 
@@ -76,6 +77,13 @@ const variantSchema = new mongoose.Schema({
     default: true,
   },
 }, { _id: true });
+
+const entityVersionSchema = new mongoose.Schema({
+  version: { type: Number, default: 1 },
+  lastModifiedTime: { type: Date, default: Date.now },
+  lastModifiedBy: { type: String, default: 'system' },
+  updateToken: { type: String, default: () => new mongoose.Types.ObjectId().toString() }
+}, { _id: false });
 
 const productSchema = new mongoose.Schema({
   name: {
@@ -135,6 +143,7 @@ const productSchema = new mongoose.Schema({
   rating:       { type: Number, default: 0 },
   numReviews:   { type: Number, default: 0 },
   tags:         [{ type: String }],
+  entityVersion: { type: entityVersionSchema, default: () => ({}) },
 }, { timestamps: true });
 
 const applyVariantStockState = (target, variants, fallbackStock) => {
@@ -159,8 +168,27 @@ const applyVariantStockState = (target, variants, fallbackStock) => {
   target.isOutOfStock = safeStock === 0
 }
 
-productSchema.pre('save', function () {
+productSchema.pre('save', function (next) {
   applyVariantStockState(this, this.variants, this.stock)
+
+  if (!this.entityVersion) {
+    this.entityVersion = {
+      version: 1,
+      lastModifiedTime: new Date(),
+      lastModifiedBy: 'system',
+      updateToken: new mongoose.Types.ObjectId().toString()
+    };
+  } else if (this.isModified()) {
+    if (this.isNew) {
+      this.entityVersion.version = 1;
+      this.entityVersion.updateToken = new mongoose.Types.ObjectId().toString();
+    } else {
+      this.entityVersion.version += 1;
+      this.entityVersion.lastModifiedTime = new Date();
+      this.entityVersion.updateToken = new mongoose.Types.ObjectId().toString();
+    }
+  }
+  next()
 })
 
 productSchema.pre(

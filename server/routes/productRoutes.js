@@ -8,6 +8,7 @@ import variantRoutes from './variantRoutes.js';
 import { localCache } from '../utils/cache.js';
 import Category, { ensureDefaultCategories, slugifyCategory } from '../models/categoryModel.js';
 import { logAdminActivity } from '../utils/auditLogger.js';
+import { validateEntityVersion } from '../middleware/concurrencyMiddleware.js';
 
 const router = express.Router();
 
@@ -260,7 +261,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
 });
 
 // PUT update product (admin only)
-router.put('/:id', protect, adminOnly, async (req, res) => {
+router.put('/:id', protect, adminOnly, validateEntityVersion('Product'), async (req, res) => {
   try {
     const { error } = await validateCategoryPayload(req.body, { required: false });
     if (error) return res.status(400).json({ message: error });
@@ -271,6 +272,9 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     const previousStock = Number(previousProduct.stock || 0);
 
     previousProduct.set(req.body);
+    if (previousProduct.entityVersion) {
+      previousProduct.entityVersion.lastModifiedBy = req.user ? req.user._id.toString() : 'system';
+    }
     const product = await previousProduct.save();
 
     await logAdminActivity(req, {
