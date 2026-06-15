@@ -154,28 +154,28 @@ export default function SyncWidget() {
   // Render floating connection state badge
   const getBadgeStyles = () => {
     if (!connState.isOnline) {
-      return 'bg-amber-500/20 text-amber-400 border-amber-500/40 animate-pulse';
+      return 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20 focus:ring-amber-500 animate-pulse';
     }
     if (connState.syncStatus === 'syncing') {
-      return 'bg-primary-500/20 text-primary-400 border-primary-500/40';
+      return 'bg-primary-500/10 text-primary-400 border-primary-500/30 hover:bg-primary-500/20 focus:ring-primary-500';
     }
     if (conflicts.length > 0) {
-      return 'bg-red-500/20 text-red-400 border-red-500/40';
+      return 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 focus:ring-red-500';
     }
-    return 'bg-green-500/10 text-green-400 border-green-500/20';
+    return 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20 focus:ring-green-500';
   };
 
   const getStatusIcon = () => {
     if (connState.syncStatus === 'syncing') {
-      return <RefreshCw className="w-4 h-4 animate-spin text-primary-400" />;
+      return <RefreshCw className="w-[18px] h-[18px] md:w-5 md:h-5 animate-spin text-primary-400" />;
     }
     if (!connState.isOnline) {
-      return <WifiOff className="w-4 h-4 text-amber-400" />;
+      return <WifiOff className="w-[18px] h-[18px] md:w-5 md:h-5 text-amber-400" />;
     }
     if (conflicts.length > 0) {
-      return <AlertTriangle className="w-4 h-4 text-red-400" />;
+      return <AlertTriangle className="w-[18px] h-[18px] md:w-5 md:h-5 text-red-400" />;
     }
-    return <Wifi className="w-4 h-4 text-green-400" />;
+    return <Wifi className="w-[18px] h-[18px] md:w-5 md:h-5 text-green-400" />;
   };
 
   return (
@@ -183,7 +183,8 @@ export default function SyncWidget() {
       {/* Floating State Badge Trigger */}
       <motion.button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 z-[45] flex items-center gap-2 px-4 py-3 rounded-2xl border backdrop-blur-md shadow-lg shadow-black/40 cursor-pointer font-medium text-xs transition-colors hover:scale-105 active:scale-95 ${getBadgeStyles()}`}
+        aria-label="Online and Sync Console"
+        className={`fixed right-[64px] md:right-[76px] lg:right-[84px] bottom-3 md:bottom-4 lg:bottom-6 z-[9998] flex items-center justify-center gap-2 px-4 rounded-full border backdrop-blur-md shadow-lg shadow-black/40 cursor-pointer font-medium text-sm transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-bg h-10 md:h-[44px] lg:h-12 ${getBadgeStyles()}`}
         layoutId="sync-badge"
       >
         {getStatusIcon()}

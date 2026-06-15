@@ -16,8 +16,8 @@ export default function WhatsAppButton() {
         }
         .wa-btn {
           position: fixed;
-          bottom: 20px;
-          right: 16px;
+          bottom: 12px;
+          right: 12px;
           z-index: 9999;
           width: 44px;
           height: 44px;
@@ -39,12 +39,18 @@ export default function WhatsAppButton() {
           animation: wa-pulse 2.5s ease-out infinite;
           pointer-events: none;
         }
-        @media (min-width: 640px) {
+        @media (min-width: 768px) {
           .wa-btn {
-            bottom: 28px;
-            right: 28px;
+            bottom: 16px;
+            right: 16px;
             width: 48px;
             height: 48px;
+          }
+        }
+        @media (min-width: 1024px) {
+          .wa-btn {
+            bottom: 24px;
+            right: 24px;
           }
         }
       `}</style>
