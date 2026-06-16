@@ -39,7 +39,7 @@ const SEO = ({
     "logo": "https://autocraftcob.vercel.app/logo.png",
     "image": "https://autocraftcob.vercel.app/logo.png",
     "description": finalDescription,
-    "email": "autocraftcoochbehar@gmail.com",
+    "email": "autocraftcob@gmail.com",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": "Old Military Hospital Road, Gowala Patti",
