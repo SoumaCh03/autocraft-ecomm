@@ -79,7 +79,7 @@ export default function Navbar() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-16 relative">
 
             {/* Logo */}
             <Link to="/" className="flex items-center group" aria-label="AUTOCRAFT home">
@@ -93,7 +93,7 @@ export default function Navbar() {
             </Link>
 
             {/* Desktop Nav */}
-            <div className="hidden lg:flex items-center gap-1">
+            <div className="hidden lg:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
               {/* Shop by Car Brand */}
               <div
                 className="relative"

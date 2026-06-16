@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Disallow specific non-public or sensitive routes
+Disallow: /admin/
+Disallow: /admin/*
+Disallow: /profile
+Disallow: /my-orders
+Disallow: /checkout
+Disallow: /order-success
+Disallow: /reset-password/*
+
+# Sitemaps
+Sitemap: https://autocraft.in/sitemap.xml
+Sitemap: https://autocraft.in/api/seo/sitemap.xml

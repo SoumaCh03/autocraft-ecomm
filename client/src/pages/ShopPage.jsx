@@ -5,7 +5,7 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import { useCart } from '../context/CartContext'
 import { useWishlist } from '../context/WishlistContext'
-import { Helmet } from 'react-helmet-async'
+import SEO from '../components/seo/SEO'
 import BASE_URL from '../utils/api'
 import ShopHeader from '../components/shop/ShopHeader'
 import ShopFilters from '../components/shop/ShopFilters'
@@ -178,11 +178,22 @@ export default function ShopPage() {
     inStockOnly && { label: 'In Stock', clear: 'stock' },
   ].filter(Boolean)
 
+  // Dynamic Schema for CollectionPage
+  const collectionSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Shop Car Accessories",
+    "description": "Browse premium car accessories and modification products at AUTOCRAFT Cooch Behar.",
+    "url": "https://autocraft.in/shop"
+  };
+
   return (
     <>
-      <Helmet>
-        <title>Shop — AUTOCRAFT</title>
-      </Helmet>
+      <SEO 
+        title={category ? `${getCategoryDisplayName(category, categories)} Accessories in Cooch Behar` : "Shop Car Accessories in Cooch Behar"}
+        description={`Browse our premium selection of ${category ? getCategoryDisplayName(category, categories).toLowerCase() : 'car accessories and modification products'} at AUTOCRAFT Cooch Behar.`}
+        schemaList={[collectionSchema]}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
         <ShopHeader brand={brand} model={model} category={category} categories={categories} total={total} sort={sort} searchParams={searchParams} setSearchParams={setSearchParams} setPage={setPage} />

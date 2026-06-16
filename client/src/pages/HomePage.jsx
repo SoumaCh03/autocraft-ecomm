@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight, Star, Shield, Truck, Headphones, Heart } from 'lucide-react'
-import { Helmet } from 'react-helmet-async'
+import SEO from '../components/seo/SEO'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 import BASE_URL from '../utils/api'
@@ -99,13 +99,11 @@ export default function HomePage() {
 
   return (
     <>
-      <Helmet>
-        <title>AUTOCRAFT — Premium Car Accessories India</title>
-        <meta name="description" content="Shop premium car accessories for all Indian car brands. Exterior, interior, lighting, electronics and more. Free shipping above ₹999." />
-        <meta property="og:title" content="AUTOCRAFT — Premium Car Accessories India" />
-        <meta property="og:description" content="Shop premium car accessories for every Indian car brand." />
-        <meta name="keywords" content="car accessories india, seat covers, car lights, maruti accessories, hyundai accessories" />
-      </Helmet>
+      <SEO 
+        title="Premium Car Accessories & Modification Shop"
+        description="AUTOCRAFT Cooch Behar offers the best car modification, seat covers, lighting, and premium car accessories in Cooch Behar and North Bengal."
+        keywords="car accessories cooch behar, car modification cooch behar, best car modification in cooch behar, autocraft koch bihar, vehicle styling, custom car accessories"
+      />
 
       <section className="relative min-h-screen flex items-center justify-center overflow-x-clip overflow-y-visible pt-20">
         <div className="absolute inset-0 bg-grid-pattern opacity-40" />
@@ -114,18 +112,18 @@ export default function HomePage() {
 
         <div className="relative z-10 max-w-5xl mx-auto px-4 text-center">
           <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.6 }}>
-            <span className="inline-block px-3 py-1.5 rounded-full border border-primary-500/40 bg-primary-500/10 text-primary-500 text-xs font-medium tracking-wide uppercase mb-6 max-w-xs text-center">
-              India's Premium Car Accessories Store
+            <span className="inline-block px-4 py-1.5 rounded-full border border-primary-500/40 bg-primary-500/10 text-primary-500 text-[10px] sm:text-xs font-medium tracking-wide uppercase mb-6 whitespace-nowrap max-w-full">
+              Top Car Modification Shop in Cooch Behar
             </span>
           </motion.div>
 
           <motion.h1 initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.6, delay: 0.1 }} className="font-display text-5xl sm:text-6xl md:text-7xl font-bold text-dark-text leading-tight mb-6">
-            Upgrade Your Ride.<br />
-            <span className="gradient-text">Elevate Your Drive.</span>
+            Elevate Your Drive.<br />
+            <span className="gradient-text">Best Vehicle Styling.</span>
           </motion.h1>
 
           <motion.p initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.6, delay: 0.2 }} className="text-dark-muted text-lg sm:text-xl max-w-2xl mx-auto mb-10">
-            Discover premium accessories crafted for every Indian car. From Maruti to Mahindra — find the perfect fit.
+            Visit AUTOCRAFT Cooch Behar for premium car accessories and custom modification services. From Maruti to Mahindra, From styling to protection — find the perfect fit.
           </motion.p>
 
           <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.6, delay: 0.3 }} className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -241,7 +239,7 @@ export default function HomePage() {
                 <Link to={`/product/${product._id}`} className="block">
                   <div className="aspect-square bg-dark-border/50 relative overflow-hidden">
                     {product.images?.[0] ? (
-                      <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={product.images[0]} alt={product.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-dark-muted/30 font-display text-4xl font-bold">AC</div>
                     )}

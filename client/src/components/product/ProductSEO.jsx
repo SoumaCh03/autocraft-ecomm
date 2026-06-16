@@ -1,9 +1,9 @@
-import { Helmet } from 'react-helmet-async'
+import SEO from '../seo/SEO'
 
 export default function ProductSEO({ product, displayProduct, isOutOfStock }) {
   const productUrl = `${window.location.origin}/product/${product._id}`
   const productImage = displayProduct.images?.[0] || `${window.location.origin}/logo.png`
-  const seoDescription = product.description?.slice(0, 155) || `${product.name} by AUTOCRAFT`
+  const seoDescription = product.description?.slice(0, 155) || `${product.name} available at AUTOCRAFT Cooch Behar. Premium car accessories and modification.`
 
   const schema = {
     '@context': 'https://schema.org',
@@ -40,24 +40,14 @@ export default function ProductSEO({ product, displayProduct, isOutOfStock }) {
   }
 
   return (
-    <Helmet>
-      <title>{product.name} - AUTOCRAFT</title>
-      <meta name="description" content={seoDescription} />
-      <meta name="keywords" content={[product.name, product.category, ...(product.tags || []), ...(product.carBrands || []), 'AUTOCRAFT', 'car accessories india'].join(', ')} />
-      <meta property="og:type" content="product" />
-      <meta property="og:title" content={`${product.name} - AUTOCRAFT`} />
-      <meta property="og:description" content={seoDescription} />
-      <meta property="og:image" content={productImage} />
-      <meta property="og:url" content={productUrl} />
-      <meta property="product:price:amount" content={String(displayProduct.price)} />
-      <meta property="product:price:currency" content="INR" />
-      <meta property="product:availability" content={isOutOfStock ? 'out of stock' : 'in stock'} />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={`${product.name} - AUTOCRAFT`} />
-      <meta name="twitter:description" content={seoDescription} />
-      <meta name="twitter:image" content={productImage} />
-      <script type="application/ld+json">{JSON.stringify(schema)}</script>
-      <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
-    </Helmet>
+    <SEO
+      title={product.name}
+      description={seoDescription}
+      keywords={[product.name, product.category, ...(product.tags || []), ...(product.carBrands || []), 'AUTOCRAFT Cooch Behar', 'car modification cooch behar', 'car accessories'].join(', ')}
+      url={productUrl}
+      image={productImage}
+      type="product"
+      schemaList={[schema, breadcrumbSchema]}
+    />
   )
 }
