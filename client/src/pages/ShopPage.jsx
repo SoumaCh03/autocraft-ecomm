@@ -184,7 +184,7 @@ export default function ShopPage() {
     "@type": "CollectionPage",
     "name": "Shop Car Accessories",
     "description": "Browse premium car accessories and modification products at AUTOCRAFT Cooch Behar.",
-    "url": "https://autocraft.in/shop"
+    "url": "https://autocraftcob.vercel.app/shop"
   };
 
   return (

@@ -6,7 +6,7 @@ const SEO = ({
   description, 
   keywords, 
   url, 
-  image = 'https://autocraft.in/logo.png',
+  image = 'https://autocraftcob.vercel.app/logo.png',
   type = 'website',
   schemaList = []
 }) => {
@@ -25,7 +25,7 @@ const SEO = ({
   const baseSchema = {
     "@context": "https://schema.org",
     "@type": ["LocalBusiness", "AutoPartsStore", "Store"],
-    "@id": "https://autocraft.in/#business",
+    "@id": "https://autocraftcob.vercel.app/#business",
     "name": "AUTOCRAFT",
     "alternateName": [
       "Autocraft Cooch Behar",
@@ -39,7 +39,7 @@ const SEO = ({
     "logo": "https://autocraftcob.vercel.app/logo.png",
     "image": "https://autocraftcob.vercel.app/logo.png",
     "description": finalDescription,
-    "email": "hello@autocraft.in",
+    "email": "autocraftcoochbehar@gmail.com",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": "Old Military Hospital Road, Gowala Patti",

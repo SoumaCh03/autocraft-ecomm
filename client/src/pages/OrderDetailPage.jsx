@@ -87,7 +87,7 @@ export default function OrderDetailPage() {
     doc.setTextColor(100)
     doc.text('Car Decoration — Premium Car Accessories', 14, 27)
     doc.text('Old Military Hospital Road, Gowala Patti, Cooch Behar, WB 736101', 14, 33)
-    doc.text('hello@autocraft.in', 14, 39)
+    doc.text('autocraftcoochbehar@gmail.com', 14, 39)
 
     doc.setFontSize(16)
     doc.setTextColor(0)
@@ -150,7 +150,7 @@ export default function OrderDetailPage() {
     doc.setFontSize(9)
     doc.setTextColor(150)
     doc.text('Thank you for shopping with AUTOCRAFT!', 14, finalY)
-    doc.text('For support: hello@autocraft.in', 14, finalY + 5)
+    doc.text('For support: autocraftcoochbehar@gmail.com', 14, finalY + 5)
 
     // Legacy layout retained above for compatibility; premium invoice download is handled first.
   }

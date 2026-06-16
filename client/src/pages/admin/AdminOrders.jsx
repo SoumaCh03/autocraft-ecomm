@@ -116,7 +116,7 @@ export default function AdminOrders() {
     doc.text('AUTOCRAFT', 14, 16)
     doc.setFontSize(8)
     doc.setTextColor(100)
-    doc.text('Car Decoration — Cooch Behar, WB 736101 | hello@autocraft.in', 14, 22)
+    doc.text('Car Decoration — Cooch Behar, WB 736101 | autocraftcoochbehar@gmail.com', 14, 22)
 
     doc.setDrawColor(200)
     doc.line(14, 26, 134, 26)

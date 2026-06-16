@@ -6,7 +6,7 @@ const router = express.Router();
 router.get('/sitemap.xml', async (req, res) => {
   try {
     // We assume the frontend URL is the base domain
-    const baseUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0].trim() : 'https://autocraft.in';
+    const baseUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0].trim() : 'https://autocraftcob.vercel.app';
 
     // Get all products to include in the sitemap
     // Only select the necessary fields to optimize DB query
