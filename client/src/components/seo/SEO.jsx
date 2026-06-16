@@ -17,7 +17,9 @@ const SEO = ({
   const finalTitle = title ? `${title} | ${siteName}` : siteName;
   const finalDescription = description || defaultDescription;
   const finalKeywords = keywords || defaultKeywords;
-  const canonicalUrl = url || 'https://autocraft.in';
+  
+  // Use the current window URL or fallback to vercel domain
+  const canonicalUrl = url || (typeof window !== 'undefined' ? window.location.href.split('?')[0] : 'https://autocraftcob.vercel.app');
 
   // Base Organization and LocalBusiness Schema for Every Page
   const baseSchema = {
@@ -33,9 +35,9 @@ const SEO = ({
       "Autocraft Pom",
       "Autocraft Sayan"
     ],
-    "url": "https://autocraft.in/",
-    "logo": "https://autocraft.in/logo.png",
-    "image": "https://autocraft.in/logo.png",
+    "url": "https://autocraftcob.vercel.app/",
+    "logo": "https://autocraftcob.vercel.app/logo.png",
+    "image": "https://autocraftcob.vercel.app/logo.png",
     "description": finalDescription,
     "email": "hello@autocraft.in",
     "address": {
