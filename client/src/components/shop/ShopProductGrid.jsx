@@ -38,7 +38,7 @@ export default function ShopProductGrid({ products, loading, categories = [], is
           <div className="relative aspect-square overflow-hidden bg-dark-border rounded-xl">
             <Link to={`/product/${product._id}`}>
               {product.images?.[0] ? (
-                <img src={product.images[0]} alt={product.name} loading="lazy" className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ${product.isOutOfStock ? 'opacity-50 grayscale' : ''}`} />
+                <img src={product.images[0]} alt={product.name} width={400} height={400} loading="lazy" className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ${product.isOutOfStock ? 'opacity-50 grayscale' : ''}`} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-dark-muted text-2xl font-bold">AC</div>
               )}

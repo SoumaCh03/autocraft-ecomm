@@ -66,7 +66,7 @@ export default function ResetPassword() {
               <>
                 <div className="text-center mb-8">
                   <Link to="/">
-                    <img src="/logo.png" alt="AUTOCRAFT" className="h-12 w-auto object-contain mx-auto mb-4" />
+                    <img src="/logo.png" alt="AUTOCRAFT" width={223} height={65} className="h-12 w-auto object-contain mx-auto mb-4" />
                   </Link>
                   <h1 className="font-display text-2xl font-bold text-dark-text">Set New Password</h1>
                   <p className="text-dark-muted text-sm mt-1">Choose a strong password</p>

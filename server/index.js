@@ -56,6 +56,24 @@ const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigi
 
 app.use(helmet({
   contentSecurityPolicy: false, // Pure API server; CSP is disabled to not block frontend client assets
+  crossOriginOpenerPolicy: { policy: 'same-origin' },
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow cross-origin resource loading (images, fonts, API responses)
+  originAgentCluster: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  strictTransportSecurity: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+  },
+  xContentTypeOptions: true, // nosniff
+  xFrameOptions: { action: 'sameorigin' },
+  permissionsPolicy: {
+    features: {
+      camera: ["'none'"],
+      microphone: ["'none'"],
+      geolocation: ["'self'"],
+      payment: ["'self'"],
+    }
+  },
 }));
 
 app.use(cors({
@@ -68,13 +86,6 @@ app.use(cors({
   },
   credentials: true,
 }));
-
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  next();
-});
 
 // Payload size limits to protect against buffer overflow/JSON flooding DOS
 app.use(express.json({ limit: '10kb' }));

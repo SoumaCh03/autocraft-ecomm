@@ -13,19 +13,19 @@ import { getCategoryDisplayName } from '../utils/categories'
 const API = BASE_URL
 
 const FEATURES = [
-  { icon: Truck,      title: 'Free Shipping', desc: 'On orders above ₹999' },
-  { icon: Shield,     title: '100% Genuine',  desc: 'Certified products only' },
-  { icon: Star,       title: 'Top Rated',     desc: '5,000+ happy customers' },
-  { icon: Headphones, title: '24/7 Support',  desc: 'Always here to help' },
+  { icon: Truck, title: 'Free Shipping', desc: 'On orders above ₹999' },
+  { icon: Shield, title: '100% Genuine', desc: 'Certified products only' },
+  { icon: Star, title: 'Top Rated', desc: '5,000+ happy customers' },
+  { icon: Headphones, title: '24/7 Support', desc: 'Always here to help' },
 ]
 
 const LEGACY_CATEGORIES = [
-  { name: 'Exterior',    emoji: '🚗', slug: 'exterior',    desc: 'Body kits, wraps & more' },
-  { name: 'Interior',    emoji: '🪑', slug: 'interior',    desc: 'Seat covers, mats & more' },
-  { name: 'Lighting',    emoji: '💡', slug: 'lighting',    desc: 'LED, HID & ambient lights' },
+  { name: 'Exterior', emoji: '🚗', slug: 'exterior', desc: 'Body kits, wraps & more' },
+  { name: 'Interior', emoji: '🪑', slug: 'interior', desc: 'Seat covers, mats & more' },
+  { name: 'Lighting', emoji: '💡', slug: 'lighting', desc: 'LED, HID & ambient lights' },
   { name: 'Electronics', emoji: '📱', slug: 'electronics', desc: 'Cameras, GPS & more' },
-  { name: 'Car Care',    emoji: '🧴', slug: 'car-care',    desc: 'Polish, wax & cleaners' },
-  { name: 'Dashboard',   emoji: '🎛️', slug: 'dashboard',   desc: 'Mounts, trims & gauges' },
+  { name: 'Car Care', emoji: '🧴', slug: 'car-care', desc: 'Polish, wax & cleaners' },
+  { name: 'Dashboard', emoji: '🎛️', slug: 'dashboard', desc: 'Mounts, trims & gauges' },
 ]
 
 const CAR_BRANDS = [
@@ -56,7 +56,7 @@ const REVIEWS = [
 ]
 
 const fadeUp = {
-  hidden:  { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0 },
 }
 
@@ -99,7 +99,7 @@ export default function HomePage() {
 
   return (
     <>
-      <SEO 
+      <SEO
         title="Premium Car Accessories & Modification Shop"
         description="AUTOCRAFT Cooch Behar offers the best car modification, seat covers, lighting, and premium car accessories in Cooch Behar and North Bengal."
         keywords="car accessories cooch behar, car modification cooch behar, best car modification in cooch behar, autocraft koch bihar, vehicle styling, custom car accessories"
@@ -113,11 +113,11 @@ export default function HomePage() {
         <div className="relative z-10 max-w-5xl mx-auto px-4 text-center">
           <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.6 }}>
             <span className="inline-block px-4 py-1.5 rounded-full border border-primary-500/40 bg-primary-500/10 text-primary-500 text-[10px] sm:text-xs font-medium tracking-wide uppercase mb-6 whitespace-nowrap max-w-full">
-              Top Car Modification Shop in Cooch Behar
+              Best Car Modification Shop in Cooch Behar
             </span>
           </motion.div>
 
-          <motion.h1 initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.6, delay: 0.1 }} className="font-display text-5xl sm:text-6xl md:text-7xl font-bold text-dark-text leading-tight mb-6">
+          <motion.h1 initial={{ opacity: 1, y: 0 }} animate="visible" variants={fadeUp} transition={{ duration: 0.6, delay: 0.1 }} className="font-display text-5xl sm:text-6xl md:text-7xl font-bold text-dark-text leading-tight mb-6">
             Elevate Your Drive.<br />
             <span className="gradient-text">Best Vehicle Styling.</span>
           </motion.h1>
@@ -239,7 +239,7 @@ export default function HomePage() {
                 <Link to={`/product/${product._id}`} className="block">
                   <div className="aspect-square bg-dark-border/50 relative overflow-hidden">
                     {product.images?.[0] ? (
-                      <img src={product.images[0]} alt={product.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={product.images[0]} alt={product.name} width={400} height={400} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-dark-muted/30 font-display text-4xl font-bold">AC</div>
                     )}
@@ -265,9 +265,8 @@ export default function HomePage() {
                         e.stopPropagation()
                         toggleWishlist(product)
                       }}
-                      className={`absolute top-3 ${product.weeklySold > 0 ? 'right-20' : 'right-3'} z-20 p-2 rounded-xl backdrop-blur-sm transition-all ${
-                        isWishlisted(product._id) ? 'bg-red-500 text-white' : 'bg-dark-card/85 text-dark-muted hover:text-red-400'
-                      }`}
+                      className={`absolute top-3 ${product.weeklySold > 0 ? 'right-20' : 'right-3'} z-20 p-2 rounded-xl backdrop-blur-sm transition-all ${isWishlisted(product._id) ? 'bg-red-500 text-white' : 'bg-dark-card/85 text-dark-muted hover:text-red-400'
+                        }`}
                       aria-label={`${isWishlisted(product._id) ? 'Remove' : 'Add'} ${product.name} wishlist`}
                     >
                       <Heart size={14} className={isWishlisted(product._id) ? 'fill-current' : ''} />

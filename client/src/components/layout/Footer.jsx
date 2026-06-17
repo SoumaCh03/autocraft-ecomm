@@ -58,6 +58,8 @@ export default function Footer() {
               <img
                 src="/logo.png"
                 alt="AUTOCRAFT"
+                width={223}
+                height={65}
                 className="h-10 w-auto object-contain"
               />
             </div>

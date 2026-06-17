@@ -57,7 +57,7 @@ export default function LoginPage() {
 
             <div className="text-center mb-8">
               <Link to="/">
-                <img src="/logo.png" alt="AUTOCRAFT" className="h-12 w-auto object-contain mx-auto mb-4" />
+                <img src="/logo.png" alt="AUTOCRAFT" width={223} height={65} className="h-12 w-auto object-contain mx-auto mb-4" />
               </Link>
               <h1 className="font-display text-2xl font-bold text-dark-text">
                 Welcome back
@@ -152,6 +152,8 @@ export default function LoginPage() {
               <img
                 src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
                 alt="Google"
+                width={20}
+                height={20}
                 className="w-5 h-5"
               />
               <span className="font-medium">Continue with Google</span>
