@@ -212,7 +212,7 @@ export default function HomePage() {
 
         {featuredLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {[1, 2, 3, 4].map(i => (
+            {[...Array(8)].map((_, i) => (
               <div key={i} className="card overflow-hidden animate-pulse">
                 <div className="aspect-square bg-dark-border/50" />
                 <div className="p-4 space-y-3">

@@ -7,7 +7,7 @@ import { useCart } from '../../context/CartContext'
 import { useWishlist } from '../../context/WishlistContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import NotificationBell from '../ui/NotificationBell'
-import logo from '../../assets/logo.png'
+// import logo from '../../assets/logo.png'
 import useCategories from '../../hooks/useCategories'
 
 
@@ -84,10 +84,12 @@ export default function Navbar() {
             {/* Logo */}
             <Link to="/" className="flex items-center group" aria-label="AUTOCRAFT home">
               <img
-                src={logo}
+                src="/logo.webp"
                 alt="AUTOCRAFT"
                 width={223}
                 height={65}
+                fetchPriority="high"
+                loading="eager"
                 className="h-10 w-auto object-contain group-hover:scale-105 transition-transform duration-200"
               />
             </Link>
