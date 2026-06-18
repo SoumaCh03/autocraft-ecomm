@@ -355,21 +355,20 @@ router.post('/:id/notify', async (req, res) => {
     product.notifyList.push({ email, requestedAt: new Date(), status: 'waiting' });
     await product.save();
 
-    try {
-      await sendEmail({
-        to: email,
-        subject: `Notify request received — AUTOCRAFT`,
-        html: `
-          <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#080c14;color:#e8eaf0;border-radius:16px;">
-            <h2 style="color:#3b6bff;">Notify Request Received</h2>
-            <p>We will email you when this product is back in stock.</p>
-            <p><strong>${product.name}</strong></p>
-          </div>
-        `,
-      });
-    } catch (emailErr) {
+    // Fire-and-forget: send confirmation email without blocking the response
+    sendEmail({
+      to: email,
+      subject: `Notify request received — AUTOCRAFT`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#080c14;color:#e8eaf0;border-radius:16px;">
+          <h2 style="color:#3b6bff;">Notify Request Received</h2>
+          <p>We will email you when this product is back in stock.</p>
+          <p><strong>${product.name}</strong></p>
+        </div>
+      `,
+    }).catch((emailErr) => {
       console.log('Notify confirmation email failed:', emailErr.message);
-    }
+    });
 
     res.status(201).json({ message: 'We will notify you when this product is back in stock' });
   } catch (error) {

@@ -9,6 +9,9 @@ const sendEmail = async ({ to, subject, html }) => {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    connectionTimeout: 10000, // 10s to establish connection
+    greetingTimeout:   10000, // 10s for SMTP greeting
+    socketTimeout:     10000, // 10s for socket inactivity
   });
 
   await transporter.sendMail({
