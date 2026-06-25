@@ -1266,7 +1266,7 @@ export default function AdminAnalytics() {
                 <div className="card p-5 lg:col-span-2 bg-dark-card/40">
                   <h3 className="font-semibold text-dark-text text-sm mb-4">Visitor Traffic Streams (Hourly Today)</h3>
                   <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                       <AreaChart data={visitorStats.hourlyData}>
                         <defs>
                           <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
@@ -1289,7 +1289,7 @@ export default function AdminAnalytics() {
                   <h3 className="font-semibold text-dark-text text-sm mb-4">Device Allocations</h3>
                   <div className="h-64 flex flex-col justify-between">
                     <div className="h-44">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                         <PieChart>
                           <Pie
                             data={visitorStats.deviceShare}
@@ -1606,7 +1606,7 @@ export default function AdminAnalytics() {
                 <div className="card p-5 lg:col-span-2 bg-dark-card/40">
                   <h3 className="font-semibold text-dark-text text-sm mb-4">Abandonment Density (Hourly Today)</h3>
                   <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                       <AreaChart data={abandonedStats.hourlyAbandonmentData}>
                         <defs>
                           <linearGradient id="colorAbandon" x1="0" y1="0" x2="0" y2="1">
@@ -1631,7 +1631,7 @@ export default function AdminAnalytics() {
                     {abandonedStats.topAbandonedProducts?.length === 0 ? (
                       <p className="text-xs text-dark-muted text-center py-10">No product abandonment data</p>
                     ) : (
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                         <BarChart data={abandonedStats.topAbandonedProducts}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" opacity={0.3} />
                           <XAxis dataKey="name" stroke="#6b7280" fontSize={8} tickFormatter={(t) => t.slice(0, 10) + '...'} />
@@ -1967,7 +1967,7 @@ export default function AdminAnalytics() {
                 <div className="card p-6">
                   <h3 className="font-semibold text-dark-text text-base mb-6">Revenue and Profits Trajectory</h3>
                   <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                       <ComposedChart data={salesData.chartData}>
                         <defs>
                           <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -1998,7 +1998,7 @@ export default function AdminAnalytics() {
                   <div className="card p-6">
                     <h3 className="font-semibold text-dark-text text-base mb-6">Product Revenue by Category</h3>
                     <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                         <BarChart data={salesData.topCategories}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" opacity={0.3} />
                           <XAxis dataKey="category" stroke="#6b7280" fontSize={10} />
@@ -2018,7 +2018,7 @@ export default function AdminAnalytics() {
                   <div className="card p-6">
                     <h3 className="font-semibold text-dark-text text-base mb-6">Distribution by Brand Volume</h3>
                     <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                         <PieChart>
                           <Pie
                             data={salesData.topBrands}
@@ -2075,7 +2075,7 @@ export default function AdminAnalytics() {
             <div className="card p-6">
               <h3 className="font-semibold text-dark-text text-base mb-6">User Conversion Funnel Benchmark</h3>
               <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                   <BarChart data={funnelData.funnelData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" opacity={0.3} />
                     <XAxis type="number" stroke="#6b7280" fontSize={10} />
@@ -2255,7 +2255,7 @@ export default function AdminAnalytics() {
               <div className="card p-6">
                 <h3 className="font-semibold text-dark-text text-base mb-6">User Base Segments Count</h3>
                 <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <BarChart
                       data={[
                         { name: 'VIPs', count: customerData.summary.totalVIPs },
