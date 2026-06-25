@@ -2,6 +2,7 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import { useTheme } from './context/ThemeContext'
 import { useEffect, lazy, Suspense } from 'react'
 import useAnalytics from './hooks/useAnalytics'
+import useTabAttention from './hooks/useTabAttention'
 
 // Static layout components & guards
 import Navbar from './components/layout/Navbar'
@@ -38,6 +39,16 @@ const AdminProducts  = lazy(() => import('./pages/admin/AdminProducts'))
 const AdminOrders    = lazy(() => import('./pages/admin/AdminOrders'))
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'))
 const AdminGovernance = lazy(() => import('./pages/admin/AdminGovernance'))
+
+const TAB_ATTENTION_CONFIG = {
+  enabled: true,
+  rotationInterval: 2000,
+  favicon: {
+    enabled: false,
+    attentionHref: '/favicon.svg',
+    attentionType: 'image/svg+xml',
+  },
+}
 
 // Premium Glassmorphic Loading Screen
 const LoadingFallback = () => (
@@ -90,6 +101,7 @@ export default function App() {
   const { user } = useAuth()
   const location = useLocation()
   useAnalytics()
+  useTabAttention(TAB_ATTENTION_CONFIG)
 
   const validRoutes = [
     '/',
