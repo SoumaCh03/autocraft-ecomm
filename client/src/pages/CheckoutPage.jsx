@@ -52,6 +52,17 @@ export default function CheckoutPage() {
   
   const [paymentMethod, setPaymentMethod] = useState('razorpay')
   const [addressTracked, setAddressTracked] = useState(false)
+  const [address, setAddress] = useState({
+    name:    user?.name || '',
+    phone:   user?.phone || '',
+    street:  '',
+    city:    '',
+    state:   '',
+    pincode: '',
+  })
+  const [loading, setLoading] = useState(false)
+  const [saveAddress, setSaveAddress] = useState(false)
+  const [addressLabel, setAddressLabel] = useState('Home')
 
   const handlePaymentMethodSelect = (method) => {
     setPaymentMethod(method)
@@ -59,6 +70,20 @@ export default function CheckoutPage() {
       stage: 'payment_method_selected',
       paymentMethod: method
     })
+  }
+
+  const handleChange = (e) => setAddress({ ...address, [e.target.name]: e.target.value })
+
+  const handleSelectSavedAddress = (savedAddress) => {
+    setAddress((prev) => ({
+      ...prev,
+      street: savedAddress.street || '',
+      city: savedAddress.city || '',
+      state: savedAddress.state || '',
+      pincode: savedAddress.pincode || '',
+    }))
+
+    toast.success('Address selected')
   }
 
   useEffect(() => {
@@ -89,33 +114,6 @@ export default function CheckoutPage() {
     : 0
 
   const finalTotal = grandTotal + codFee
-
-  const [address, setAddress] = useState({
-    name:    user?.name || '',
-    phone:   user?.phone || '',
-    street:  '',
-    city:    '',
-    state:   '',
-    pincode: '',
-  })
-  
-  const [loading, setLoading] = useState(false)
-  const [saveAddress, setSaveAddress] = useState(false)
-  const [addressLabel, setAddressLabel] = useState('Home')
-
-  const handleChange = (e) => setAddress({ ...address, [e.target.name]: e.target.value })
-
-  const handleSelectSavedAddress = (savedAddress) => {
-    setAddress((prev) => ({
-      ...prev,
-      street: savedAddress.street || '',
-      city: savedAddress.city || '',
-      state: savedAddress.state || '',
-      pincode: savedAddress.pincode || '',
-    }))
-
-    toast.success('Address selected')
-  }
 
   const loadRazorpay = () => {
     return new Promise((resolve) => {
