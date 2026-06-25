@@ -107,7 +107,7 @@ export const emitNotificationEvent = async ({
 // Emit to all admins
 export const notifyAllAdmins = async ({ type, title, message, relatedData = {} }) => {
   try {
-    const admins = await User.find({ role: 'admin' }, '_id');
+    const admins = await User.find({ role: { $in: ['admin', 'super_admin'] } }, '_id');
     const adminIds = admins.map(a => a._id);
 
     if (adminIds.length === 0) {

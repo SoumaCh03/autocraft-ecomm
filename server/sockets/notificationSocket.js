@@ -11,7 +11,7 @@ export const initNotificationSocket = (io) => {
     socket.join(`user:${userId}`);
 
     // Join role-based rooms
-    if (userRole === 'admin') {
+    if (userRole === 'admin' || userRole === 'super_admin') {
       socket.join('admin');
       socket.join('admin_analytics');
     } else if (userRole === 'customer') {
