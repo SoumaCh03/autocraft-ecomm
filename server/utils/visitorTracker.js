@@ -62,28 +62,43 @@ export const trackVisitorSession = async (event, reqUser) => {
       // Find if this visitor had other sessions to set correct visitCount
       const prevSessionsCount = await VisitorAnalytics.countDocuments({ visitorId: visitorID });
 
-      visitor = new VisitorAnalytics({
-        visitorId: visitorID,
-        sessionId: sessionID,
-        userId,
-        isRegistered,
-        name,
-        email,
-        phone,
-        deviceType: deviceType || 'Desktop',
-        operatingSystem: operatingSystem || 'Others',
-        browser: browser || 'Others',
-        screenResolution: screenResolution || '',
-        language: language || '',
-        timezone: timezone || '',
-        firstVisit: eventTime,
-        lastVisit: eventTime,
-        pagesVisited: path ? [path] : [],
-        visitCount: prevSessionsCount + 1,
-        totalSessionTime: 0,
-        journey: journeyStep ? [{ step: journeyStep, timestamp: eventTime, path: path || '/' }] : [],
-      });
-    } else {
+      const result = await VisitorAnalytics.findOneAndUpdate(
+        { visitorId: visitorID, sessionId: sessionID },
+        {
+          $setOnInsert: {
+            visitorId: visitorID,
+            sessionId: sessionID,
+            userId,
+            isRegistered,
+            name,
+            email,
+            phone,
+            deviceType: deviceType || 'Desktop',
+            operatingSystem: operatingSystem || 'Others',
+            browser: browser || 'Others',
+            screenResolution: screenResolution || '',
+            language: language || '',
+            timezone: timezone || '',
+            firstVisit: eventTime,
+            lastVisit: eventTime,
+            pagesVisited: path ? [path] : [],
+            visitCount: prevSessionsCount + 1,
+            totalSessionTime: 0,
+            journey: journeyStep ? [{ step: journeyStep, timestamp: eventTime, path: path || '/' }] : [],
+          }
+        },
+        { upsert: true, new: true, includeResultMetadata: true }
+      );
+
+      const wasInserted = result.lastErrorObject && !result.lastErrorObject.updatedExisting;
+      visitor = result.value;
+
+      if (wasInserted) {
+        return;
+      }
+    }
+
+    if (visitor) {
       // Session exists, update it
       if (userId && !visitor.userId) {
         visitor.userId = userId;
@@ -158,27 +173,42 @@ export const trackCheckoutStage = async (event, reqUser) => {
     if (!checkout) {
       const isCompleted = (stage === 'order_created' || stage === 'payment_success');
 
-      checkout = new AbandonedCheckout({
-        visitorId: visitorID,
-        sessionId: sessionID,
-        userId,
-        name,
-        email,
-        phone,
-        cartSnapshot: cartSnapshot || [],
-        cartValue: cartValue || 0,
-        itemsCount: itemsCount || 0,
-        paymentMethod: paymentMethod || 'unknown',
-        deviceType: deviceType || 'Desktop',
-        operatingSystem: operatingSystem || 'Others',
-        browser: browser || 'Others',
-        screenResolution: screenResolution || '',
-        lastStage: stage,
-        status: isCompleted ? 'converted' : 'pending',
-        timeline: [{ stage, timestamp: eventTime }],
-        lastActivity: eventTime,
-      });
-    } else {
+      const result = await AbandonedCheckout.findOneAndUpdate(
+        { visitorId: visitorID, sessionId: sessionID },
+        {
+          $setOnInsert: {
+            visitorId: visitorID,
+            sessionId: sessionID,
+            userId,
+            name,
+            email,
+            phone,
+            cartSnapshot: cartSnapshot || [],
+            cartValue: cartValue || 0,
+            itemsCount: itemsCount || 0,
+            paymentMethod: paymentMethod || 'unknown',
+            deviceType: deviceType || 'Desktop',
+            operatingSystem: operatingSystem || 'Others',
+            browser: browser || 'Others',
+            screenResolution: screenResolution || '',
+            lastStage: stage,
+            status: isCompleted ? 'converted' : 'pending',
+            timeline: [{ stage, timestamp: eventTime }],
+            lastActivity: eventTime,
+          }
+        },
+        { upsert: true, new: true, includeResultMetadata: true }
+      );
+
+      const wasInserted = result.lastErrorObject && !result.lastErrorObject.updatedExisting;
+      checkout = result.value;
+
+      if (wasInserted) {
+        return;
+      }
+    }
+
+    if (checkout) {
       if (checkout.status === 'converted') {
         return;
       }
