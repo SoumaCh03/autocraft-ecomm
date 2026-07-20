@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config(); // MUST BE FIRST
 
 import express from 'express';
+import mongoose from 'mongoose';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
@@ -42,6 +43,30 @@ startAbandonedCheckoutJob();
 const app = express();
 
 app.set('trust proxy', 1);
+
+// --- OPTIMIZED HEALTH CHECK ---
+app.get('/health', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const dbStatusMap = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting',
+    99: 'uninitialized'
+  };
+
+  res.status(dbState === 1 ? 200 : 503).json({
+    status: dbState === 1 ? 'AUTOCRAFT server running' : 'AUTOCRAFT server degraded',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    database: {
+      state: dbState,
+      status: dbStatusMap[dbState] || 'unknown'
+    }
+  });
+});
+// ------------------------------
 
 const defaultAllowedOrigins = [
   'http://localhost:5173',
@@ -136,9 +161,6 @@ app.use('/api/abandoned-checkouts', abandonedCheckoutRoutes);
 app.use('/api/sync',          syncRoutes);
 app.use('/api/seo',           seoRoutes);
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'AUTOCRAFT server running' });
-});
 
 app.use((err, req, res, next) => {
   console.error('GLOBAL ERROR:', err);
