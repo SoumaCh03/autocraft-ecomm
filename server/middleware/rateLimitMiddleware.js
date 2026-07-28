@@ -9,6 +9,7 @@ export const apiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path === '/health' || req.path === '/api/health',
 });
 
 // Stricter rate limit for authentication routes to prevent brute-force attacks

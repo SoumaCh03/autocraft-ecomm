@@ -45,7 +45,11 @@ const app = express();
 app.set('trust proxy', 1);
 
 // --- OPTIMIZED HEALTH CHECK ---
-app.get('/health', (req, res) => {
+const handleHealthCheck = (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   const dbState = mongoose.connection.readyState;
   const dbStatusMap = {
     0: 'disconnected',
@@ -65,7 +69,10 @@ app.get('/health', (req, res) => {
       status: dbStatusMap[dbState] || 'unknown'
     }
   });
-});
+};
+
+app.get(['/health', '/api/health'], handleHealthCheck);
+app.head(['/health', '/api/health'], handleHealthCheck);
 // ------------------------------
 
 const defaultAllowedOrigins = [
