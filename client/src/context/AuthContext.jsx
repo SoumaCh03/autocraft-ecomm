@@ -13,47 +13,47 @@ export const AuthProvider = ({ children }) => {
   const [token,   setToken]   = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data } = await api.get('/auth/me');
+  const checkAuth = async () => {
+    try {
+      const { data } = await api.get('/auth/me');
 
-        setUser(data.user);
-        setToken(data.token);
-        if (data.user) {
-          localStorage.setItem('autocraft_offline_user', JSON.stringify(data.user));
-          localStorage.setItem('autocraft_offline_token', data.token || '');
-        } else {
-          localStorage.removeItem('autocraft_offline_user');
-          localStorage.removeItem('autocraft_offline_token');
-        }
-      } catch (error) {
-        const isNetworkError = !error.response || error.code === 'ECONNABORTED' || error.message === 'Network Error';
-        if (isNetworkError) {
-          const cachedUser = localStorage.getItem('autocraft_offline_user');
-          const cachedToken = localStorage.getItem('autocraft_offline_token');
-          if (cachedUser) {
-            console.log('[Auth] Network unreachable. Recovered cached session.');
-            setUser(JSON.parse(cachedUser));
-            setToken(cachedToken || null);
-            setLoading(false);
-            return;
-          }
-        }
-
-        if (error.response?.status !== 401) {
-          console.error('[Auth] Failed to fetch current user:', error);
-        }
-
-        setUser(null);
-        setToken(null);
+      setUser(data.user);
+      setToken(data.token);
+      if (data.user) {
+        localStorage.setItem('autocraft_offline_user', JSON.stringify(data.user));
+        localStorage.setItem('autocraft_offline_token', data.token || '');
+      } else {
         localStorage.removeItem('autocraft_offline_user');
         localStorage.removeItem('autocraft_offline_token');
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      const isNetworkError = !error.response || error.code === 'ECONNABORTED' || error.message === 'Network Error';
+      if (isNetworkError) {
+        const cachedUser = localStorage.getItem('autocraft_offline_user');
+        const cachedToken = localStorage.getItem('autocraft_offline_token');
+        if (cachedUser) {
+          console.log('[Auth] Network unreachable. Recovered cached session.');
+          setUser(JSON.parse(cachedUser));
+          setToken(cachedToken || null);
+          setLoading(false);
+          return;
+        }
+      }
 
+      if (error.response?.status !== 401) {
+        console.error('[Auth] Failed to fetch current user:', error);
+      }
+
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('autocraft_offline_user');
+      localStorage.removeItem('autocraft_offline_token');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     checkAuth();
   }, []);
 
