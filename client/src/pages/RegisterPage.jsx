@@ -231,7 +231,7 @@ export default function RegisterPage() {
                 </div>
 
                 <a
-                  href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/api/auth/google`}
+                  href="/api/auth/google"
                   className="w-full flex items-center justify-center gap-3 border border-dark-border rounded-xl py-3 text-sm text-dark-text bg-white/5 hover:bg-white/10 transition-all duration-200"
                 >
                   <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width={20} height={20} className="w-5 h-5" />
