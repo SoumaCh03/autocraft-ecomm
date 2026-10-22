@@ -147,13 +147,22 @@ router.get('/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
+const getClientUrl = () => {
+  const raw = process.env.CLIENT_URL || 'https://autocraftcob.vercel.app';
+  return raw.split(',')[0].trim().replace(/\/$/, '');
+};
+
 router.get('/google/callback',
-  passport.authenticate('google', {
-    failureRedirect: `${process.env.CLIENT_URL}/login?error=google`,
-  }),
+  (req, res, next) => {
+    const clientUrl = getClientUrl();
+    passport.authenticate('google', {
+      failureRedirect: `${clientUrl}/login?error=google`,
+    })(req, res, next);
+  },
   async (req, res) => {
+    const clientUrl = getClientUrl();
     await generateToken(res, req.user);
-    res.redirect(`${process.env.CLIENT_URL}?login=success`);
+    res.redirect(`${clientUrl}?login=success`);
   }
 );
 

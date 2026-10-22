@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import axios from 'axios'
 import BASE_URL from '../utils/api'
 import { useWishlist } from '../context/WishlistContext'
+import { useAuth } from '../context/AuthContext'
 import useCategories from '../hooks/useCategories'
 import { getCategoryDisplayName } from '../utils/categories'
 
@@ -67,6 +68,7 @@ export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState([])
   const [featuredLoading, setFeaturedLoading] = useState(true)
   const { isWishlisted, toggleWishlist } = useWishlist()
+  const { checkAuth } = useAuth()
   const { categories } = useCategories()
   const homepageCategories = categories.length ? categories : LEGACY_CATEGORIES
 
@@ -74,13 +76,14 @@ export default function HomePage() {
     const loginStatus = searchParams.get('login')
     const errorStatus = searchParams.get('error')
     if (loginStatus === 'success') {
+      if (checkAuth) checkAuth()
       toast.success('Welcome! Logged in with Google!')
       navigate('/', { replace: true })
     } else if (errorStatus === 'google') {
       toast.error('Google login failed. Please try again.')
       navigate('/login', { replace: true })
     }
-  }, [searchParams, navigate])
+  }, [searchParams, navigate, checkAuth])
 
   useEffect(() => {
     const fetchFeatured = async () => {
